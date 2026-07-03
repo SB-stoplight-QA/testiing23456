@@ -1,0 +1,835 @@
+openapi: 3.0.3
+x-stoplight:
+  id: 2rj5gdxwou9vu
+info:
+  title: Commerce API
+  description: |
+    Commerce API manages purchases and subscriptions at Bosch eBike.
+
+    This API uses `ETag`, `If-Match`, `If-None-Match`, `Cache-Control` and `Vary` headers and their concepts extensible.
+    Therefore make sure to verify per path it's usage.
+
+    Additionally, some `string` porperties are defined as `x-extensible-enum`s.
+    Those can only viewed directl in the respective OpenAPI files and have different behaviour than usual "static" enums.
+    Therefore new enum values may be added without creating a new major version of the API.
+  version: 1.0.0
+  contact:
+    email: cloud-api.support@de.bosch.com
+    name: Bosch eBike Systems Support
+servers:
+  - description: Production
+    url: 'https://api.bosch-ebike.com/commerce/v1'
+security:
+  - OIDC_PROD:
+      - offline_access
+tags:
+  - name: Events
+    description: Endpoints related to manage events.
+  - name: Purchases
+    description: Endpoints related to purchases
+paths:
+  /purchases:
+    x-status: draft
+    post:
+      summary: Purchase a product for a user.
+      description: |
+        Creates a purchase in the context of a user for the provided product.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Purchase'
+      responses:
+        '201':
+          $ref: '#/components/responses/PurchaseCreated'
+        '400':
+          $ref: '#/components/responses/CreatePurchaseError'
+        '401':
+          $ref: '#/components/responses/unauthorizedResponseV2'
+        '403':
+          $ref: '#/components/responses/forbiddenResponseV2'
+        default:
+          $ref: '#/components/responses/defaultResponseV1'
+      operationId: CreatePurchase
+      tags:
+        - Purchases
+      security:
+        - OIDC_PROD: []
+      x-stoplight:
+        id: awiu80oycnmeu
+    get:
+      summary: List of purchases.
+      description: |
+        Retrieve a list of purchases.
+      parameters:
+        - schema:
+            $ref: '#/components/schemas/PurchaseStatus'
+          in: query
+          name: purchaseStatus
+          description: |
+            Filter by the status of the purchase.
+            If not provided, all status will be returned.
+        - schema:
+            $ref: '#/components/schemas/PurchaseStatusDetail'
+          in: query
+          name: purchaseStatusDetail
+          description: |
+            Filter by the status detail of the purchase.
+            If not provided, all status detail will be returned.
+      responses:
+        '200':
+          $ref: '#/components/responses/GetPurchasesResponse'
+        '401':
+          $ref: '#/components/responses/unauthorizedResponseV2'
+        '403':
+          $ref: '#/components/responses/forbiddenResponseV2'
+        default:
+          $ref: '#/components/responses/defaultResponseV1'
+      operationId: GetPurchases
+      tags:
+        - Purchases
+      security:
+        - OIDC_PROD: []
+      x-stoplight:
+        id: x06rikedaokjd
+  '/purchases/{id}':
+    x-status: draft
+    get:
+      summary: Retrieve a single purchase
+      description: |
+        Retrieve a single purchase.
+      parameters:
+        - $ref: '#/components/parameters/If-None-Match-Cache'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Purchase'
+          description: Single purchase
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag-Cache'
+            Cache-Control:
+              $ref: '#/components/headers/Cache-Control'
+            Vary:
+              $ref: '#/components/headers/Vary'
+        '304':
+          description: Purchase not modified
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag-Cache'
+            Cache-Control:
+              $ref: '#/components/headers/Cache-Control'
+            Vary:
+              $ref: '#/components/headers/Vary'
+        '400':
+          $ref: '#/components/responses/RetrievePurchaseError'
+        '401':
+          $ref: '#/components/responses/unauthorizedResponseV2'
+        '403':
+          $ref: '#/components/responses/forbiddenResponseV2'
+        '404':
+          $ref: '#/components/responses/PurchaseNotFoundError'
+        default:
+          $ref: '#/components/responses/defaultResponseV1'
+      operationId: GetPurchase
+      tags:
+        - Purchases
+      security:
+        - OIDC_PROD: []
+      x-stoplight:
+        id: olxazyp70kape
+    parameters:
+      - schema:
+          type: string
+          format: uuid
+        name: id
+        in: path
+        required: true
+        description: Unique ID of the purchase
+    patch:
+      summary: Update a single purchase
+      description: |
+        Partially updates the provided attributes of the defined purchase.
+
+        If the purchase is currently not assigned to a user e.g. since the user deleted it's eBike Account, the purchase will assigned to the provided user context.
+        This can be used to restore a purchase for existing third party users.
+      parameters:
+        - $ref: '#/components/parameters/If-Match-Locking'
+      requestBody:
+        content:
+          application/merge-patch+json:
+            schema:
+              $ref: '#/components/schemas/PurchasePatch'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Purchase'
+          description: 'Single, updated purchase'
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag-Locking'
+            Cache-Control:
+              $ref: '#/components/headers/Cache-Control'
+            Vary:
+              $ref: '#/components/headers/Vary'
+        '400':
+          $ref: '#/components/responses/UpdatePurchaseError'
+        '401':
+          $ref: '#/components/responses/unauthorizedResponseV2'
+        '403':
+          $ref: '#/components/responses/forbiddenResponseV2'
+        '404':
+          $ref: '#/components/responses/PurchaseNotFoundError'
+        '412':
+          $ref: '#/components/responses/PurchaseChangedError'
+        '428':
+          $ref: '#/components/responses/PurchasePreconditionRequiredError'
+        default:
+          $ref: '#/components/responses/defaultResponseV1'
+      operationId: PatchPurchase
+      tags:
+        - Purchases
+      security:
+        - OIDC_PROD: []
+      x-stoplight:
+        id: 872naml9jnmgf
+  /events:
+    x-status: draft
+    post:
+      summary: Send events
+      description: |
+        With this resource, predefined events can be send to Bosch eBike.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Event'
+      responses:
+        '202':
+          description: Successfully accepted event and will process it as soon as possible.
+        '400':
+          $ref: '#/components/responses/CreateEventError'
+        '401':
+          $ref: '#/components/responses/unauthorizedResponseV2'
+        '403':
+          $ref: '#/components/responses/forbiddenResponseV2'
+        default:
+          $ref: '#/components/responses/defaultResponseV1'
+      operationId: PostEvents
+      tags:
+        - Events
+      security:
+        - OIDC_PROD: []
+      x-stoplight:
+        id: 6lljtaybl6v5q
+components:
+  securitySchemes:
+    OIDC_PROD:
+      type: oauth2
+      flows:
+        authorizationCode:
+          authorizationUrl: 'https://p9.authz.bosch.com/auth/realms/obc/protocol/openid-connect/auth'
+          tokenUrl: 'https://p9.authz.bosch.com/auth/realms/obc/protocol/openid-connect/token'
+          refreshUrl: 'https://p9.authz.bosch.com/auth/realms/obc/protocol/openid-connect/token'
+          scopes:
+            offline_access: Use this optional scope to request a refresh token which never expires. The client application is responsible for securely persisting the token. The token never expires as long as it is used for a refresh token grant at least once every 180 days.
+      description: |-
+        Bosch Identity & Access Management
+
+        **Offline Access:** Client applications may use [offline_access](https://openid.net/specs/openid-connect-core-1_0.html#OfflineAccess). See the scope description below.
+  responses:
+    PurchaseCreated:
+      description: In the case the request was processed successfully and the purchase was created.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Purchase'
+      headers:
+        Location:
+          $ref: '#/components/headers/Location'
+        ETag:
+          $ref: '#/components/headers/ETag-Cache'
+        Cache-Control:
+          $ref: '#/components/headers/Cache-Control'
+        Vary:
+          $ref: '#/components/headers/Vary'
+    GetPurchasesResponse:
+      description: List of purchases
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - purchases
+            properties:
+              purchases:
+                type: array
+                title: Purchases
+                items:
+                  $ref: '#/components/schemas/Purchase'
+    PurchaseNotFoundError:
+      description: |
+        Whenever the purchase is not found, the api returns a detailed error.
+        See list of errors in the examples.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/problem-1.0.0'
+          examples:
+            Purchase not found:
+              value:
+                requestId: 9e4c7a2f-3b6d-4f8a-c5e9-8a2d6f4c7b95
+                type: /problems/purchase-not-found
+                detail: purchase 3a8f2c5e-9b4d-4f7a-b2e6-7c9a4f2e6b83 not found
+    PurchaseChangedError:
+      description: |-
+        Purchase has changed since last GET.
+        Please retrieve via a new GET request the current status of the purchase incl. it's ETag.
+        Once verified what has changed, you can decide on how to proceed e.g. send the request again.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/problem-1.0.0'
+          examples:
+            Purchase has changed:
+              value:
+                requestId: d0f02698-d97e-486b-b86a-35b505e544f5
+                type: /problems/purchase-changed
+                detail: purchase 3a8f2c5e-9b4d-4f7a-b2e6-7c9a4f2e6b83 has changed since last retrieval
+    PurchasePreconditionRequiredError:
+      description: Required precondition for the request is not met.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/problem-1.0.0'
+          examples:
+            ETag required:
+              value:
+                requestId: e1f3c5a7-b9d4-4e6f-a2c8-5d7e9b3f4a62
+                type: /problems/precondition-required#etag
+                detail: To modify purchase 3a8f2c5e-9b4d-4f7a-b2e6-7c9a4f2e6b83 the current ETag is required via the If-Match header.
+    CreatePurchaseError:
+      description: |
+        Whenever something went wrong, the api returns a detailed error.
+        See list of errors in the examples.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/problem-1.0.0'
+          examples:
+            Validation for given purchase data failed:
+              value:
+                requestId: 2f7b4e9c-8a3d-4f6b-c9e5-6d8a2c5f7b94
+                type: /problems/validation-failed
+                detail: validation of purchase failed
+    RetrievePurchaseError:
+      description: |
+        Whenever something went wrong, the api returns a detailed error.
+        See list of errors in the examples.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/problem-1.0.0'
+          examples:
+            Validation for given purchase data failed:
+              value:
+                requestId: 4a9c2f6e-7b5d-4c8a-f2e9-3d6a9c2f5b87
+                type: /problems/validation-failed
+                detail: validation of purchase failed
+    UpdatePurchaseError:
+      description: |
+        Whenever something went wrong, the api returns a detailed error.
+        See list of errors in the examples.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/problem-1.0.0'
+          examples:
+            Validation for given purchase data failed:
+              value:
+                requestId: 9b5e2f8c-3a7d-4c6f-e9b2-6a4c8f2e7d95
+                type: /problems/validation-failed
+                detail: validation of purchase failed
+    CreateEventError:
+      description: |
+        Whenever something went wrong, the api returns a detailed error.
+        See list of errors in the examples.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/problem-1.0.0'
+          examples:
+            Validation for given event data failed:
+              value:
+                requestId: 7f2e9c4a-6b8d-4a5f-c7e2-9b4f6a2e8c53
+                type: /problems/validation-failed
+                detail: validation of event failed
+    defaultResponseV1:
+      description: |
+        Error occurred - see status code and problem schema for more information.
+        **Important:** Because of a distributed architecture, responses may occur that do not use the problem schema.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/problem-1.0.0'
+          examples:
+            internal-server-error:
+              value:
+                type: /problems/internal-server-error
+                title: Internal Server Error
+                status: 500
+                detail: An internal server error has occurred
+                requestId: 075be661d3a4460b98dee5d66849dd5e
+    unauthorizedResponseV2:
+      description: |
+        Unauthorized
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/problem-1.0.0'
+          examples:
+            no-authentication-provided:
+              value:
+                type: /problems/authentication-error#no-authentication-provided
+                title: Unauthenticated
+                status: 401
+                detail: No authentication provided
+                requestId: 075be661d3a4460b98dee5d66849dd5e
+            jwt-expired:
+              value:
+                type: /problems/authentication-error#jwt-expired
+                title: Unauthenticated
+                status: 401
+                detail: Jwt is expired
+                requestId: 075be661d3a4460b98dee5d66849dd5e
+            mailformed-jwt:
+              value:
+                type: /problems/authentication-error#mailformed-jwt
+                title: Unauthenticated
+                status: 401
+                detail: JWT is not in the form of Header.Payload.Signature with two dots and 3 sections
+                requestId: 075be661d3a4460b98dee5d66849dd5e
+            unknown-issuer:
+              value:
+                type: /problems/authentication-error#unknown-issuer
+                title: Unauthenticated
+                status: 401
+                detail: Jwt issuer is not configured
+                requestId: 075be661d3a4460b98dee5d66849dd5e
+    forbiddenResponseV2:
+      description: Forbidden
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/problem-1.0.0'
+          examples:
+            access-denied:
+              value:
+                type: /problems/authorization-error#access-denied
+                title: Forbidden
+                status: 403
+                detail: Access denied
+                requestId: 075be661d3a4460b98dee5d66849dd5e
+  schemas:
+    PlatformLeasing:
+      title: PlatformLeasing
+      type: object
+      description: Details for purchases provided by leasing partners
+      additionalProperties: false
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          enum:
+            - LEASING
+          description: Can be used to identify which platform type it is.
+        bikeId:
+          type: string
+          description: Bosch unique eBike ID.
+          format: uuid
+        additionalReferenceId:
+          type: string
+          maxLength: 128
+          description: 'Additional, optional reference ID which can be used e.g. by riders or dealers.'
+          example: HC7X846KOU-42
+        serviceId:
+          type: string
+          maxLength: 128
+          description: The service id / code which the user might have to provide to the company which does the service for the bike.
+          example: 7CS87FI9
+        serviceHotline:
+          type: string
+          maxLength: 128
+          description: Phone number which the user should contact in case of service topics.
+          example: '+4971211234567'
+      x-stoplight:
+        id: 846aeiq0wl8pr
+    PlatformLeasingPatch:
+      title: PlatformLeasingPatch
+      type: object
+      description: Details for purchases provided by leasing partners
+      additionalProperties: false
+      properties:
+        bikeId:
+          type: string
+          description: Bosch unique eBike ID.
+          format: uuid
+        additionalReferenceId:
+          type: string
+          maxLength: 128
+          description: 'Additional, optional reference ID which can be used e.g. by riders or dealers.'
+          example: HC7X846KOU-42
+        serviceId:
+          type: string
+          maxLength: 128
+          description: The service id / code which the user might have to provide to the company which does the service for the bike.
+          example: 7CS87FI9
+        serviceHotline:
+          type: string
+          maxLength: 128
+          description: Phone number which the user should contact in case of service topics.
+          example: '+4971211234567'
+      x-stoplight:
+        id: i1r6d7pc35dgq
+    Purchase:
+      title: Purchase
+      description: Purchase and all ot it's details.
+      type: object
+      required:
+        - id
+        - createdAt
+        - updatedAt
+        - client
+        - product
+        - status
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier of the purchase.
+          readOnly: true
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp when the purchase was created.
+          readOnly: true
+        updatedAt:
+          type: string
+          format: date-time
+          description: Timestamp when the purchase was updated the last time.
+          readOnly: true
+        client:
+          $ref: '#/components/schemas/Client'
+        product:
+          $ref: '#/components/schemas/ProductDetails'
+        status:
+          $ref: '#/components/schemas/PurchaseStatus'
+        statusDetail:
+          $ref: '#/components/schemas/PurchaseStatusDetail'
+        platform:
+          $ref: '#/components/schemas/Platform'
+      x-stoplight:
+        id: fnf9op50wdx13
+    Client:
+      type: object
+      description: Details of the client which created this purchase.
+      properties:
+        id:
+          type: string
+          description: ID of the client i.e. OAuth2 client ID.
+          example: 642115f6-6f91-4cf8-9a13-dc150004d629
+      readOnly: true
+      x-stoplight:
+        id: nm4i0wqtljdct
+    Platform:
+      description: |
+        Platform incl. details from which the purchase originated.
+
+        The service uses this information in it's domain logic to determine the response e.g. decline purchase.
+      type: object
+      properties:
+        referenceId:
+          type: string
+          description: Reference ID which can be used to identify the purchase on the used platform.
+          example: c1ff2ed5-42ae-49f7-95c0-0e553d48d968
+        details:
+          oneOf:
+            - $ref: '#/components/schemas/PlatformLeasing'
+      x-stoplight:
+        id: 7emj402x9xo0q
+    PlatformPatch:
+      description: |
+        Platform incl. details from which the purchase originated.
+
+        The service uses this information in it's domain logic to determine the response e.g. decline purchase.
+
+        Not all platform attributes can be updated.
+      type: object
+      properties:
+        details:
+          oneOf:
+            - $ref: '#/components/schemas/PlatformLeasingPatch'
+      x-stoplight:
+        id: w2g4fenq7yoez
+    PurchaseStatus:
+      type: string
+      readOnly: true
+      description: |
+        The status of the purchase.
+        This is the status which is in most cases enough.
+        If more details are required, the statusDetail can be consulted.
+      example: PURCHASE_STATUS_ACTIVE
+      x-extensible-enum:
+        - value: PURCHASE_STATUS_UNKNOWN
+          description: Fallback status.
+        - value: PURCHASE_STATUS_ACTIVE
+          description: Default status in which the purchase is active.
+        - value: PURCHASE_STATUS_INACTIVE
+          description: Purchase was deactivated because of cancelled payments or for different reasons like a pause
+      x-stoplight:
+        id: fn1qxbixnln8o
+    PurchaseStatusDetail:
+      type: string
+      readOnly: true
+      description: |
+        The following detailed status can happen:
+          - ACTIVE, but CANCELLED
+          - ACTIVE, but PAUSE_REQUEST
+          - ACTIVE, but GRACE
+          - INACTIVE, because of ON_HOLD
+          - INACTIVE, because of EXPIRED
+          - INACTIVE, because of PAUSED
+      example: PURCHASE_STATUS_DETAIL_PAUSE
+      x-extensible-enum:
+        - value: PURCHASE_STATUS_DETAIL_UNKNOWN
+          description: Fallback status.
+        - value: PURCHASE_STATUS_DETAIL_GRACE
+          description: 'In certain products/platforms, grace periods are valid.'
+        - value: PURCHASE_STATUS_DETAIL_CANCELED
+          description: 'In certain products/platforms, the purchase is allowed to be canceled.'
+        - value: PURCHASE_STATUS_DETAIL_PAUSE_REQUEST
+          description: 'In certain products/platforms, for purchases a pause can be requested.'
+        - value: PURCHASE_STATUS_DETAIL_PAUSED
+          description: 'In certain products/platforms, purchases can be paused.'
+        - value: PURCHASE_STATUS_DETAIL_ON_HOLD
+          description: 'In certain products/platforms, purchases can be on-hold.'
+        - value: PURCHASE_STATUS_DETAIL_EXPIRED
+          description: 'In certain products/platforms, purchases can expire.'
+      x-stoplight:
+        id: zfxaogulyluri
+    PurchasePatch:
+      title: PurchasePatch
+      description: Properties which can be partially updated.
+      type: object
+      properties:
+        product:
+          $ref: '#/components/schemas/Product'
+        platform:
+          $ref: '#/components/schemas/PlatformPatch'
+      x-stoplight:
+        id: 7td6exltlwc1h
+    Product:
+      title: Product
+      description: Product details which can be updated via PATCH.
+      type: object
+      properties:
+        startDate:
+          type: string
+          format: date-time
+          description: 'Start date of the product, if applicable.'
+        endDate:
+          type: string
+          format: date-time
+          description: 'End date of the product, if applicable.'
+      x-stoplight:
+        id: k6svx12gf4nb4
+    ProductDetails:
+      title: ProductDetails
+      type: object
+      description: Details of a product during or after it was purchased.
+      required:
+        - id
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: UUID of product which was purchased.
+        startDate:
+          type: string
+          format: date-time
+          description: 'Start date of the product, if applicable.'
+        endDate:
+          type: string
+          format: date-time
+          description: 'End date of the product, if applicable.'
+      x-stoplight:
+        id: gguqk7eevej8u
+    OfferType:
+      type: string
+      description: |
+        Indicates which type of offer or plan was used for the purchase.
+        Important: This is reusing existing enums, which is why they are not [UPPER_SNAKE_CASE](https://platform.ebike.dev/guidelines/restful-api-guidelines.md#should-declare-enum-values-using-upper_snake_case-string).
+        Once this is touched the next time, it has to be aligned with a API first "Offers design".
+      example: base-plan
+      readOnly: true
+      x-extensible-enum:
+        - value: platform-eligible-free-trial
+          description: 1 month trial determined by the stores. Flow App >= 1.24
+        - value: base-plan
+          description: Base plan without trial
+        - value: legacy-free-trial
+          description: BCM related 12 months trial determined by the stores. Flow App < 1.24
+        - value: dev-determined-free-trial
+          description: BCM related 12 months trial determined by the stores. Flow App >= 1.24
+        - value: unknown
+          description: Default in DB and all unknown offer types
+        - value: code
+          description: Offer code was used
+        - value: bosch-free-of-charge
+          description: Bosch Free of Charge offer
+      x-stoplight:
+        id: f2r541wrn2aau
+    Event:
+      title: Event
+      type: object
+      description: |
+        Details and type of possible events.
+      required:
+        - id
+        - createdAt
+        - updatedAt
+        - occurredAt
+        - type
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier of the event.
+          readOnly: true
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp when the event was created.
+          readOnly: true
+        updatedAt:
+          type: string
+          format: date-time
+          description: Timestamp when the event was updated the last time.
+          readOnly: true
+        occurredAt:
+          type: string
+          format: date-time
+          description: Timestamp when the event actually occurred.
+        type:
+          type: string
+          example: OIDC_INITIAL_SUCCESS
+          x-extensible-enum:
+            - value: OIDC_INITIAL_SUCCESS
+              description: |
+                If the first OIDC flow between Bosch eBike Systems, the eBike Rider and the client application was successful, this event type can be send.
+            - value: OIDC_UNLINK
+              description: |
+                If the OIDC flow between Bosch eBike Systems, the eBike Rider and the client application was unlinked, this event type can be send.
+      x-stoplight:
+        id: ev04hnktjlni7
+    Problem:
+      $ref: '#/components/schemas/problem-1.0.0'
+      x-stoplight:
+        id: vyn03l282j96n
+    problem-1.0.0:
+      type: object
+      title: Problem
+      required:
+        - type
+        - detail
+        - requestId
+      properties:
+        type:
+          type: string
+          format: uri-reference
+          description: |
+            A URI reference that uniquely identifies the problem type only in the context of the provided API. Opposed to the specification in RFC-7807, it is neither recommended to be dereferenceable and point to a human-readable documentation nor globally unique for the problem type.
+          default: 'about:blank'
+          example: /problems/connection-error
+        title:
+          type: string
+          description: |
+            A short summary of the problem type. Written in English and readable for engineers, usually not suited for non technical stakeholders and not localized.
+          example: Service Unavailable
+        status:
+          type: integer
+          format: int32
+          description: |
+            The HTTP status code generated by the origin server for this occurrence of the problem.
+          minimum: 100
+          maximum: 599
+          example: 503
+        detail:
+          type: string
+          description: |
+            A human readable explanation specific to this occurrence of the problem that is helpful to locate the problem and give advice on how to proceed. Written in English and readable for engineers, usually not suited for non technical stakeholders and not localized.
+          example: Connection to database timed out
+        instance:
+          type: string
+          example: /problems/connection-error#token-info-read-timed-out
+          format: uri-reference
+          description: |
+            A URI reference that identifies the specific occurrence of the problem, e.g. by adding a fragment identifier or sub-path to the problem type. May be used to locate the root of this problem in the source code.
+        requestId:
+          type: string
+          description: ID for this request.
+          example: 075be661d3a4460b98dee5d66849dd5e
+      x-stoplight:
+        id: vkvfl5atwk8hs
+  parameters:
+    If-None-Match-Cache:
+      name: If-None-Match
+      in: header
+      required: false
+      schema:
+        type: string
+      description: |
+        Use the value of the previously received ETag response header to check if the resource has changed.
+        If so, you get the HTTP response status `200`, the current version of the resource and a new ETag response header.
+        In case the resource has not changed you just get the HTTP response with status `304` and an empty body.
+    If-Match-Locking:
+      name: If-Match
+      in: header
+      required: true
+      schema:
+        type: string
+      description: |
+        Use the value of the previously received ETag response header to check if the resource has changed.
+        In case the resource has changed you get the HTTP response with status `412`.
+        To resolve this, request the current state of the resource and decide based on the changes.
+        Either resend the request or update your local state and send a new request.
+  headers:
+    Location:
+      schema:
+        type: string
+        format: uri
+      description: Absolute URL of the newly created resource
+      required: true
+    ETag-Cache:
+      schema:
+        type: string
+      description: Calculated value to check with the `If-None-Match` request header if the resource has changed.
+    Cache-Control:
+      description: This header informs caches (e.g. in the client as well as in the network) about policies on how to cache responses.
+      schema:
+        type: string
+      example: 'must-revalidate, max-age=42'
+    Vary:
+      description: This header informs caches about headers which where used to generate the representation in responses and is relevant for e.g. caches.
+      schema:
+        type: string
+      example: 'accept, accept-encoding'
+    ETag-Locking:
+      schema:
+        type: string
+      description: Calculated value to check with the `If-None-Match` request header if the resource has changed.

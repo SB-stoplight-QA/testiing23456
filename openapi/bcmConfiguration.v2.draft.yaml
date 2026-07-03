@@ -1,0 +1,573 @@
+openapi: 3.0.0
+x-stoplight:
+  id: pund1nexcycxl
+info:
+  title: ConnectModule Configuration API
+  version: 2-draft
+  description: |-
+    <!-- theme: info -->
+
+    > ### This is an API draft. Endpoints described here are subject to change or removal.
+
+    The **ConnectModule API** empowers you to manage your portfolio of Bosch ConnectModules (BCM) via a convenient web 
+    interface.
+    BCM devices are enabled for remote configuration by default with software version **BES3_12** and above.
+
+    ### Supported operations
+    - Discover ConnectModule identifiers
+    - Enable and disable features of ConnectModules you own
+
+    ### eBike system software requirements
+    BES3_12:
+    - **LOCATION_TRACKING**
+    - **BIKE_STATUS**
+
+    BES3_17:
+    - **DISABLE_MOTOR_SUPPORT**
+
+    BES3_20:
+    - **BLE_BEACONING** (supported by BCM3101 only)
+  contact:
+    email: cloud-api.support@de.bosch.com
+    name: Bosch eBike Systems Support
+servers:
+  - description: Production
+    url: 'https://api.bosch-ebike.com/connect-module/v2-draft'
+security:
+  - Client: []
+tags:
+  - name: ConnectModule Discovery
+  - name: ConnectModule Configurations
+paths:
+  '/connect-module-masters/{bikeId}':
+    get:
+      summary: Retrieve master data of a bike with installed ConnectModule
+      description: |
+        Returns identifier data of a bike with installed ConnectModule if it belongs to the authenticated client or 
+        has no owner.
+      tags:
+        - ConnectModule Discovery
+      parameters:
+        - $ref: '#/components/parameters/bikeId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConnectModuleMaster'
+        '400':
+          $ref: '#/components/responses/400'
+        '403':
+          $ref: '#/components/responses/403'
+        '404':
+          $ref: '#/components/responses/404'
+        '429':
+          $ref: '#/components/responses/429'
+        default:
+          $ref: '#/components/responses/default'
+      operationId: get-connect-module-masters
+      security:
+        - Client: []
+      x-stoplight:
+        id: mqx3wjjwbkiqq
+  /connect-modules:
+    get:
+      summary: List all ConnectModules
+      tags:
+        - ConnectModule Configurations
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - connectModules
+                properties:
+                  connectModules:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ConnectModule'
+        '400':
+          $ref: '#/components/responses/400'
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+        '429':
+          $ref: '#/components/responses/429'
+        default:
+          $ref: '#/components/responses/default'
+      operationId: get-connect-modules
+      security:
+        - Client: []
+      description: Returns a list of all ConnectModules belonging to the authenticated client.
+      x-stoplight:
+        id: qc0zwwdd7ff1c
+  '/connect-modules/{moduleId}':
+    parameters:
+      - $ref: '#/components/parameters/moduleId'
+    get:
+      summary: Retrieve a single ConnectModule
+      tags:
+        - ConnectModule Configurations
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConnectModule'
+          headers:
+            ETag:
+              schema:
+                type: string
+              description: Calculated value to check with the `If-None-Match` request header  if the resource has changed.
+        '304':
+          description: Not Modified
+        '400':
+          $ref: '#/components/responses/400'
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+        '404':
+          $ref: '#/components/responses/404'
+        '429':
+          $ref: '#/components/responses/429'
+        default:
+          $ref: '#/components/responses/default'
+      operationId: get-connect-modules-moduleId
+      description: |-
+        Returns detailed information of a ConnectModule belonging to the authenticated client.
+
+        This endpoint supports `ETag` (entity tag), a HTTP response header, to check if the resource has changed.
+        ETags can be used by API clients for caching and conditional requests to save bandwidth by using the `If-None-Match` HTTP request header.
+      parameters:
+        - schema:
+            type: string
+          in: header
+          name: If-None-Match
+          description: 'Use the value of the previously received ETag response header to check if the resource has changed. If so, you get the HTTP response status `200`, the current version of the resource and a new ETag response header. In case the resource has not changed you just get the HTTP response status `304`.'
+      security:
+        - Client: []
+      x-stoplight:
+        id: sjouwh85h0t8b
+  '/connect-modules/{moduleId}/features/{featureType}':
+    parameters:
+      - $ref: '#/components/parameters/moduleId'
+      - $ref: '#/components/parameters/featureType'
+    put:
+      summary: Configure a ConnectModule feature
+      operationId: put-connect-module-feature
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Feature'
+        '400':
+          $ref: '#/components/responses/400'
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+        '404':
+          $ref: '#/components/responses/404'
+        '429':
+          $ref: '#/components/responses/429'
+        default:
+          $ref: '#/components/responses/default'
+      tags:
+        - ConnectModule Configurations
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Feature'
+      security:
+        - Client: []
+      description: |
+        Use this operation to enable or disable a ConnectModule feature.
+
+        You must select for each feature a predefined profile in order to control the collection and transmission rate of the data sent from the BCM to the Bosch cloud. Each feature provides at least the profiles `DEFAULT` and `NONE`. Features can also provide additional profiles.
+
+        The following table explains the feature profiles in detail:
+
+        | Feature      | Profile      | Description      | Immediate Triggers to send data     | Interval to send data |
+        | :---        | :----:        | :---        | :---:        |    :---   | 
+        | BIKE_STATUS      | DEFAULT      | Use this profile to send data during eBike usage      | <ul><li>eBike turned on/off</li><li>Charger connected/disconnected</li><li>Charging starts/stops</li><li>BCM needs charge/charge critical</li></ul> | <ul><li>Every 4 minutes if eBike is on and moving</li><li>Every 4 minutes while charger is connected and eBike is charging</li><li>Every 24 hours</li></ul> |
+        | BIKE_STATUS      | CHARGING   |   Optimized profile for eBike state of charge      | <ul><li>eBike turned on/off</li><li>Charger connected/disconnected</li><li>Charging starts/stops</li><li>BCM needs charge/charge critical</li></ul> | <ul><li>Every 6 minutes while charger is connected and eBike is charging</li><li>Every 24 hours</li></ul> |
+        | LOCATION_TRACKING      | DEFAULT   |   Use this profile to send data during eBike motion      | N/A      | <ul><li>Every 4 minutes if eBike is moving and BCM charge state is not critical</li><li>Every 24 hours</li></ul> |
+        | DISABLE_MOTOR_SUPPORT | DEFAULT | Use this profile to remotely disable motor support | <ul><li>eBike turned on/off</li></ul> | N/A |
+        | BLE_BEACONING | DEFAULT | Use this profile to enable BLE beaconing on a BCM3101 | N/A | beaconing is always on |
+        | **any**      | NONE      | Disables the feature      | N/A      | N/A        |
+
+        Configuration updates will set the feature syncStatus first to `PENDING`. With the next eBike *power-on*, the BCM requests the latest configuration, applies it and sends a confirmation back to the Bosch cloud. The feature syncStatus will be `SUCCESS` in case of success. There is also a status for `WARNING` and `ERROR`.
+
+        Once a feature is enabled the BCM starts sending data according to the configured profile.
+      x-stoplight:
+        id: rei2ktfccdw39
+components:
+  schemas:
+    ConnectModule:
+      title: ConnectModule
+      type: object
+      required:
+        - id
+        - bikeId
+        - oemBikeId
+        - oemBrandId
+        - createdAt
+        - updatedAt
+        - syncedAt
+        - syncStatus
+        - features
+      properties:
+        id:
+          type: string
+          description: BCM unique identifier. Combination of `productCode` _ `partNumber` _ `serialNumber`.
+          example: BCM3100_EB1310000B_17918-0052-01-368-00-0000
+          readOnly: true
+        bikeId:
+          type: string
+          description: Bosch unique eBike ID.
+          format: uuid
+          example: 7255dccf-c929-41f7-9aa6-a043f6096e19
+          readOnly: true
+        oemBikeId:
+          type: string
+          description: OEM unique eBike ID.
+          maxLength: 30
+          minLength: 1
+          example: ZMFPKXJ9Y6ZRSTW4
+          readOnly: true
+        oemBrandId:
+          type: string
+          description: OEM brand identifier.
+          minLength: 1
+          maxLength: 30
+          example: YOUR-BRAND
+          readOnly: true
+        bleBeaconId:
+          type: string
+          description: ID which is broadcast when BLE beaconing is enabled on a BCM3101
+          example: Bosch eBike System 35YEG
+        createdAt:
+          type: string
+          format: date-time
+          example: '2023-03-01T14:31:00.002Z'
+          description: Timestamp when the configuration was created in the cloud.
+          readOnly: true
+        updatedAt:
+          type: string
+          format: date-time
+          example: '2023-03-05T14:31:00.002Z'
+          description: Timestamp when the configuration was updated in the cloud.
+          readOnly: true
+        syncedAt:
+          type: string
+          format: date-time
+          description: Timestamp when the configuration was applied on the ConnectModule.
+          example: '2023-03-01T14:31:00.002Z'
+          readOnly: true
+        syncStatus:
+          type: string
+          enum:
+            - PENDING
+            - SUCCESS
+            - WARNING
+            - ERROR
+          default: SUCCESS
+          description: |-
+            Indicates the synchronization status of the configuration between the cloud and the ConnectModule.
+            - PENDING -> Current configuration not yet synchronized with the ConnectModule.
+            - SUCCESS -> Successfully applied all feature configurations on the ConnectModule.
+            - WARNING -> Configuration was applied on the ConnectModule, but there was a warning for at least one feature configuration.
+            - ERROR -> Configuration was applied on the ConnectModule, but there was an error for at least one feature configuration.
+          readOnly: true
+          example: SUCCESS
+        features:
+          type: array
+          items:
+            $ref: '#/components/schemas/Feature'
+      x-stoplight:
+        id: dahybog8c99a6
+    ConnectModuleMaster:
+      title: ConnectModuleMaster
+      type: object
+      required:
+        - moduleId
+        - bikeId
+      properties:
+        moduleId:
+          type: string
+          example: BCM3100_EB1310000B_17918-0052-01-368-00-0000
+          description: BCM unique identifier. Combination of `productCode` _ `partNumber` _ `serialNumber`.
+        bikeId:
+          type: string
+          format: uuid
+          example: 476526c4-e28a-4dea-976c-c7d01aede23d
+          description: Bosch unique eBike ID.
+      x-stoplight:
+        id: 36e4u6c6nxsps
+    Feature:
+      title: Feature
+      type: object
+      additionalProperties: false
+      required:
+        - type
+        - status
+        - requestedProfile
+        - appliedProfile
+        - updatedAt
+      properties:
+        type:
+          type: string
+          x-extensible-enum:
+            - value: LOCATION_TRACKING
+            - value: BIKE_STATUS
+            - value: DISABLE_MOTOR_SUPPORT
+            - value: BLE_BEACONING
+          description: Type of feature.
+          readOnly: true
+          example: BIKE_STATUS
+        status:
+          type: string
+          enum:
+            - PENDING
+            - ENABLED
+            - DISABLED
+          description: |-
+            Indicates the synchronization status of the feature configuration between the cloud and the ConnectModule.
+            - PENDING -> Current configuration not yet synchronized with the ConnectModule
+            - ENABLED -> Successfully applied requested feature profile on the ConnectModule
+            - DISABLED -> No feature profile set
+          default: DISABLED
+          readOnly: true
+          example: ENABLED
+        statusDetail:
+          type: object
+          required:
+            - type
+          properties:
+            type:
+              enum:
+                - WARNING
+                - ERROR
+              description: |-
+                - WARNING -> Please update ConnectModule software to get feature support or updates.
+                - ERROR -> An internal error occurred on the ConnectModule.
+          readOnly: true
+        requestedProfile:
+          type: string
+          x-extensible-enum:
+            - value: NONE
+            - value: DEFAULT
+            - value: CHARGING
+          description: The requested feature profile.
+          default: NONE
+          maxLength: 30
+          minLength: 1
+          example: DEFAULT
+        appliedProfile:
+          type: string
+          x-extensible-enum:
+            - value: NONE
+            - value: DEFAULT
+            - value: CHARGING
+          description: The last known feature profile applied on the ConnectModule.
+          example: DEFAULT
+          maxLength: 30
+          minLength: 1
+          readOnly: true
+        updatedAt:
+          type: string
+          format: date-time
+          description: Timestamp when the feature configuration was updated in the cloud.
+          example: '2023-03-05T14:31:00.002Z'
+          readOnly: true
+      x-stoplight:
+        id: k7ddez6yfsge1
+    Problem:
+      type: object
+      title: Problem
+      required:
+        - type
+        - detail
+        - requestId
+      properties:
+        type:
+          type: string
+          format: uri-reference
+          description: |
+            A URI reference that uniquely identifies the problem type only in the context of the provided API. Opposed to the specification in RFC-7807, it is neither recommended to be dereferenceable and point to a human-readable documentation nor globally unique for the problem type.
+          example: /problems/error-instance
+        title:
+          type: string
+          description: |
+            A short summary of the problem type. Written in English and readable for engineers, usually not suited for non technical stakeholders and not localized.
+          example: An error occurred
+        status:
+          type: integer
+          format: int32
+          description: |
+            The HTTP status code generated by the origin server for this occurrence of the problem.
+          minimum: 400
+          maximum: 600
+          exclusiveMaximum: true
+          example: 400
+        detail:
+          type: string
+          description: |
+            A human readable explanation specific to this occurrence of the problem that is helpful to locate the problem and give advice on how to proceed. Written in English and readable for engineers, usually not suited for non technical stakeholders and not localized.
+          example: An error occurred because something unexpected happened
+        instance:
+          type: string
+          format: uri-reference
+          description: |
+            A URI reference that identifies the specific occurrence of the problem, e.g. by adding a fragment identifier or sub-path to the problem type. May be used to locate the root of this problem in the source code.
+          example: /problems/error-instance#further-detail
+        requestId:
+          type: string
+          description: ID for this request.
+          example: 075be661d3a4460b98dee5d66849dd5e
+      x-stoplight:
+        id: cad9yff48x828
+  securitySchemes:
+    Client:
+      type: oauth2
+      flows:
+        clientCredentials:
+          tokenUrl: 'https://p9.authz.bosch.com/auth/realms/obc/protocol/openid-connect/token'
+          refreshUrl: 'https://p9.authz.bosch.com/auth/realms/obc/protocol/openid-connect/token'
+          scopes: {}
+      description: Bosch Identity & Access Management
+  responses:
+    '400':
+      description: Bad Request
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    '401':
+      description: Unauthorized
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          examples:
+            no-authentication-provided:
+              value:
+                type: /problems/authentication-error#no-authentication-provided
+                title: Unauthenticated
+                status: 401
+                detail: No authentication provided
+                requestId: 075be661d3a4460b98dee5d66849dd5e
+            jwt-expired:
+              value:
+                type: /problems/authentication-error#jwt-expired
+                title: Unauthenticated
+                status: 401
+                detail: Jwt is expired
+                requestId: 075be661d3a4460b98dee5d66849dd5e
+            malformed-jwt:
+              value:
+                type: /problems/authentication-error#mailformed-jwt
+                title: Unauthenticated
+                status: 401
+                detail: JWT is not in the form of Header.Payload.Signature with two dots and 3 sections
+                requestId: 075be661d3a4460b98dee5d66849dd5e
+            unknown-issuer:
+              value:
+                type: /problems/authentication-error#unknown-issuer
+                title: Unauthenticated
+                status: 401
+                detail: Jwt issuer is not configured
+                requestId: 075be661d3a4460b98dee5d66849dd5e
+    '403':
+      description: Forbidden
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          examples:
+            access-denied:
+              value:
+                type: /problems/authorization-error#access-denied
+                title: Forbidden
+                status: 403
+                detail: Access denied
+                requestId: 075be661d3a4460b98dee5d66849dd5e
+    '404':
+      description: Not Found
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    '409':
+      description: Conflict
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    '429':
+      description: Too Many Requests
+      headers:
+        X-RateLimit-Limit:
+          description: 'Bucket size, refresh size and time window for refresh in seconds'
+          schema:
+            type: string
+          example: '100, 100;w=60'
+        X-RateLimit-Remaining:
+          description: Remaining requests in current time window
+          schema:
+            type: integer
+          example: 96
+        X-RateLimit-Reset:
+          description: Time in seconds until bucket is refreshed
+          schema:
+            type: integer
+          example: 57
+    default:
+      description: Internal Server Error
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+  parameters:
+    moduleId:
+      name: moduleId
+      in: path
+      required: true
+      schema:
+        type: string
+        example: BCM3100_EB1310000B_17918-0052-01-368-00-0000
+      description: BCM unique identifier. Combination of `productCode` _ `partNumber` _ `serialNumber`.
+    bikeId:
+      name: bikeId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+        example: 7255dccf-c929-41f7-9aa6-a043f6096e19
+      description: Bosch unique eBike ID.
+    featureType:
+      name: featureType
+      in: path
+      required: true
+      description: Type of feature.
+      schema:
+        type: string
+        x-extensible-enum:
+          - value: LOCATION_TRACKING
+          - value: BIKE_STATUS
+          - value: DISABLE_MOTOR_SUPPORT
+          - value: BLE_BEACONING
+      example: BIKE_STATUS

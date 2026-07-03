@@ -1,0 +1,927 @@
+openapi: 3.0.3
+x-stoplight:
+  id: m8m5k5zeul7su
+info:
+  title: Supply Chain Data API v2
+  description: This API enables OEMs to exchange supply chain data with Bosch to gain insights into market dynamics.
+  version: 2.1.1
+  contact:
+    email: cloud-api.support@de.bosch.com
+    name: Bosch eBike Systems Support
+servers:
+  - url: 'https://api.bosch-ebike.com/supply-chain-data/v2'
+security:
+  - Client: []
+tags:
+  - name: Manufacturer Logs
+  - name: Bike Shipments
+  - name: Bike Traceabilities
+paths:
+  /manufacturer-logs:
+    post:
+      summary: Upload manufacturer logs
+      tags:
+        - Manufacturer Logs
+      responses:
+        '200':
+          description: The data was ingested successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BulkResponse'
+              examples:
+                Example 1:
+                  value:
+                    meta:
+                      successCount: 50
+                      failureCount: 0
+                    items: []
+        '207':
+          description: The data was only ingested partially.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BulkResponse'
+              examples:
+                Example 1:
+                  value:
+                    meta:
+                      successCount: 40
+                      failureCount: 10
+                    items:
+                      - pointer: /0
+                        status: 200
+                      - pointer: /1
+                        type: /problems/validation-error
+                        status: 400
+                        detail: Multiple validation errors
+                        errors:
+                          - detail: Field timestamp is not a valid date-time format.
+                            pointer: /1/timestamp
+                          - detail: Field systemId is not a valid UUID format.
+                            pointer: /1/systemId
+                        requestId: 075be661d3a4460b98dee5d66849dd5e
+        '400':
+          description: Bad Request
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenResponse'
+        '413':
+          description: Request Entity Too Large
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '500':
+          description: Internal Server Error
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        default:
+          description: Error occurred - see status code and problem object for more information.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+      operationId: post-manufacturer-logs
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: array
+              maxItems: 50
+              items:
+                $ref: '#/components/schemas/ManufacturerLog'
+      description: |
+        Upload data from BDP manlog files.
+
+        The manlog file properties match the JSON schema properties with one exception.
+
+        Please note: The JSON schema properties `bikeCategory`, `connectModuleReadiness` and `flashResult`are enums of type `x-extensible-enum`. Hence new enum values may be added without creating a new major version of the API.
+      x-stoplight:
+        id: 83hf24zee6o7t
+  /bike-shipments:
+    post:
+      summary: Report that bikes left the OEM warehouse
+      operationId: post-bike-shipments
+      description: |
+        The bikes in the given list are marked as having left the warehouse of the OEM, 
+        i.e. that they are on their way to the next actor in the value chain, usually the independent
+        bike dealer.
+
+        The `bikeId` or `driveUnit` is required as unique identifier.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: array
+              maxItems: 100
+              items:
+                $ref: '#/components/schemas/BikeShipment'
+            example:
+              - bikeId: 8fac1992-864d-4570-aaea-670ab204530f
+                isDealerConsentObtained: true
+                shippedAt: '2024-06-25T17:56:06.657Z'
+                shippedToPostCode: '141'
+                shippedToCountryCode: DE
+              - driveUnit:
+                  serialNumber: 47412-1540-41-300-00-0000
+                  partNumber: EB11100000
+                shippedAt: '2024-06-26T14:01:03.647Z'
+                shippedToPostCode: '111'
+                shippedToCountryCode: DE
+      responses:
+        '200':
+          description: The data was ingested successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BulkResponse'
+              examples:
+                Example 1:
+                  value:
+                    meta:
+                      successCount: 100
+                      failureCount: 0
+                    items: []
+        '207':
+          description: The data was only ingested partially.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BulkResponse'
+              examples:
+                Example 1:
+                  value:
+                    meta:
+                      successCount: 40
+                      failureCount: 10
+                    items:
+                      - pointer: /0
+                        status: 200
+                      - pointer: /1
+                        type: /problems/validation-error
+                        status: 400
+                        detail: Multiple validation errors
+                        errors:
+                          - detail: Field shippedAt is not a valid date-time format.
+                            pointer: /1/shippedAt
+                          - detail: Field bikeId is not a valid UUID format.
+                            pointer: /1/bikeId
+                        requestId: 075be661d3a4460b98dee5d66849dd5e
+        '400':
+          description: Bad Request
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenResponse'
+        '413':
+          description: Request Entity Too Large
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '500':
+          description: Internal Server Error
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        default:
+          description: Error occurred - see status code and problem object for more information.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+      tags:
+        - Bike Shipments
+      x-stoplight:
+        id: sjikcew5ergjh
+  /bike-traceabilities:
+    get:
+      summary: Get bike traceability data
+      operationId: get-bike-traceability
+      description: |
+        Traceability data per bike to be used for analysis.
+      parameters:
+        - in: query
+          name: updatedAfter
+          schema:
+            type: string
+            format: date-time
+          description: 'If set, only items whose `updatedAt` is after the specified value will be returned.'
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: The page to be returned. Page counting starts at value 1 for the first page.
+        - in: query
+          name: size
+          schema:
+            type: integer
+            minimum: 1
+            default: 50
+            maximum: 500
+          description: The number of items to be contained in a returned page.
+        - in: query
+          name: pseudonymisation
+          schema:
+            type: string
+            enum:
+              - NON_PSEUDONYMISED
+              - PSEUDONYMISED
+              - MIXED
+            default: MIXED
+          description: |
+            If set to `NON_PSEUDONYMISED`, only items where non pseudonymised data is available will be returned. Those items will have bike ids, serial numbers and more detailed date and location data.
+            If set to `PSEUDONYMISED`, only items where only pseudonymised data is available will be returned. Those items will only have surrogate ids and limited date and location data.
+            If set to `MIXED` or omitted the result will contain a mixed set of traceabilities.
+
+            Non pseudonymised data is only available for bikes, where at least the dealer consented to share the data and for countries whose national legislation allows sharing of customer provided data.
+      responses:
+        '200':
+          description: Get bike traceability level data.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - pagination
+                  - bikeTraceabilities
+                  - links
+                properties:
+                  pagination:
+                    type: object
+                    required:
+                      - page
+                      - size
+                      - totalItems
+                      - totalPages
+                    properties:
+                      page:
+                        type: integer
+                        description: Current page number (1 indexed).
+                        format: int32
+                      size:
+                        type: integer
+                        description: Maximum number of items in the response.
+                        format: int32
+                      totalItems:
+                        type: integer
+                        description: Total number of items.
+                        format: int32
+                      totalPages:
+                        type: integer
+                        description: Total number of pages.
+                        format: int32
+                  bikeTraceabilities:
+                    type: array
+                    description: 'A list of bike traceability data items, each item holding traceability information of a bike. Returned data is filtered according to the client credentials provided.'
+                    items:
+                      $ref: '#/components/schemas/BikeTraceability'
+                  links:
+                    type: object
+                    properties:
+                      self:
+                        type: string
+                        description: Link to the current result data set.
+                        format: uri
+                      prev:
+                        type: string
+                        description: Link to the previous result data set.
+                        format: uri
+                      next:
+                        type: string
+                        description: Link to the next result data set.
+                        format: uri
+              examples:
+                Example 1:
+                  description: Example with `pseudonymisation` set to `MIXED`
+                  value:
+                    pagination:
+                      page: 2
+                      size: 50
+                      totalItems: 122
+                      totalPages: 3
+                    bikeTraceabilities:
+                      - id: 8772ec0f-953b-492c-83f5-2191ab325af6
+                        updatedAt: '2024-10-05T14:23:10Z'
+                        bikeId: 8fac1992-864d-4570-aaea-670ab204530f
+                        driveUnit:
+                          serialNumber: 27331-2298-43-300-00-0000
+                          partNumber: EB11100001
+                        oem:
+                          production:
+                            producedAtYearWeek: 2024-W26
+                            producedAt: '2024-06-26T11:14:33Z'
+                            brandId: EBI-EBI-EBIKE
+                            skuName: ThunderPeak XT-500
+                            skuNumber: '804100'
+                          shipping:
+                            shippedAtYearWeek: 2024-W30
+                            shippedAt: '2024-07-23T08:41:12Z'
+                            postCode: '23456'
+                            postCodeFirstLetter: '2'
+                            countryCode: DE
+                        dealer:
+                          firstDiagnosticToolUsage:
+                            usedAtYearWeek: 2024-W34
+                            usedAt: '2024-08-22T16:35:55Z'
+                        rider:
+                          firstFlowAppUsage:
+                            usedAtYearWeek: 2024-W35
+                            usedAt: '2024-08-31T14:43:27Z'
+                          firstFlowAppActivity:
+                            recordedAtYearWeek: 2024-W45
+                            recordedAt: '2024-09-02T08:02:10Z'
+                            postCode: '71234'
+                            postCodeFirstLetter: '7'
+                            countryCode: DE
+                      - id: fa8f8937-3d72-487a-9405-ff02d5b6607c
+                        updatedAt: '2024-10-03T16:08:21Z'
+                        oem:
+                          production:
+                            producedAtYearWeek: 2024-W22
+                            brandId: EBI-EBI-EBIKE
+                            skuName: ThunderPeak XT-500
+                            skuNumber: '804300'
+                          shipping:
+                            shippedAtYearWeek: 2024-W25
+                            postCodeFirstLetter: '7'
+                            countryCode: DE
+                        dealer:
+                          firstDiagnosticToolUsage:
+                            usedAtYearWeek: 2024-W29
+                        rider:
+                          firstFlowAppUsage:
+                            usedAtYearWeek: 2024-W30
+                          firstFlowAppActivity:
+                            recordedAtYearWeek: 2024-W42
+                            postCodeFirstLetter: '1'
+                            countryCode: DE
+                    links:
+                      self: 'https://api.bosch-ebike.com/supply-chain-data/v2/bike-traceabilities?page=2'
+                      prev: 'https://api.bosch-ebike.com/supply-chain-data/v2/bike-traceabilities?page=1'
+                      next: 'https://api.bosch-ebike.com/supply-chain-data/v2/bike-traceabilities?page=3'
+        '400':
+          description: Bad Request
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        default:
+          description: Error occurred - see status code and problem object for more information.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+      tags:
+        - Bike Traceabilities
+      x-stoplight:
+        id: 9n4nzn7jlyl2h
+components:
+  schemas:
+    BikeShipment:
+      title: BikeShipment
+      type: object
+      description: The `bikeId` or `driveUnit` is required as unique identifier.
+      required:
+        - shippedAt
+      properties:
+        bikeId:
+          type: string
+          format: uuid
+          description: The ID of the bike as written on the drive unit while configuring the bike with the BDP when assembling it. Can be obtained from the field `systemId` in the manufacturing log file written by the BDP.
+        isDealerConsentObtained:
+          type: boolean
+          default: false
+          description: 'Indicates if the OEM obtained the consent, that the dealer, to which the bike is about to be shipped, is willing to share traceability data with the OEM. Defaults to `false` if not present.'
+        driveUnit:
+          type: object
+          description: Drive Unit as unique identifier.
+          required:
+            - partNumber
+            - serialNumber
+          properties:
+            partNumber:
+              type: string
+              description: The part number of the drive unit.
+              maxLength: 13
+            serialNumber:
+              type: string
+              description: The serial number of the drive unit.
+              maxLength: 25
+        shippedAt:
+          type: string
+          description: The date and time when the bike identified by the given id left the warehouse.
+          format: date-time
+        shippedToPostCode:
+          type: string
+          description: The postal code the bike was shipped to.
+          maxLength: 10
+          example: '72770'
+        shippedToCountryCode:
+          type: string
+          maxLength: 2
+          minLength: 2
+          example: DE
+          description: The two letter country code of the dealer's location. In ISO 3166-1 alpha-2 format.
+        skuName:
+          type: string
+          example: ThunderPeak XT-500
+          description: The SKU's name.
+          maxLength: 255
+        skuNumber:
+          type: string
+          example: '804100'
+          description: An identifier denoting the bike's SKU.
+          maxLength: 64
+      x-stoplight:
+        id: 1n9vez3xm37o4
+    ManufacturerLog:
+      title: ManufacturerLog
+      type: object
+      description: OEM manufacturer data from BDP logs
+      required:
+        - systemId
+        - timestamp
+      properties:
+        productionDate:
+          type: string
+          description: Manufacturing date of the bike in `YYYY-MM-DD` format.
+          format: date
+        productionLine:
+          type: string
+          maxLength: 30
+          description: Manufacturing line of the bike.
+        productionSite:
+          type: string
+          maxLength: 30
+          description: Manufacturing location of the bike.
+        containerBrandId:
+          type: string
+          maxLength: 30
+          description: Brand identifier of the OEM.
+        containerBrandName:
+          type: string
+          maxLength: 30
+          description: Brand name of the OEM.
+        oemBikeModelId:
+          type: string
+          maxLength: 200
+          description: Bike model ID of the OEM.
+        eBikeId:
+          type: string
+          maxLength: 30
+          description: Bike ID of the OEM.
+        systemId:
+          type: string
+          format: uuid
+          description: Bike ID of Bosch.
+        bikeCategory:
+          type: string
+          x-extensible-enum:
+            - value: BIKE_CATEGORY_NOT_CONFIGURED
+            - value: CITY
+            - value: TREKKING
+            - value: M_T_B_TOUR
+            - value: M_T_B_TRAIL
+            - value: ROAD
+            - value: GRAVEL
+            - value: KIDS
+            - value: CARGO
+            - value: FLEET
+            - value: OTHERS
+            - value: E_CARGO_LONG_TAIL
+            - value: UNRECOGNIZED
+          maxLength: 30
+          description: The category of the bike.
+        connectModuleReadiness:
+          type: string
+          x-extensible-enum:
+            - value: NOT_READY_NOT_ASSEMBLED
+            - value: READY_NOT_ASSEMBLED
+            - value: READY_ASSEMBLED
+          description: Indicator if the eBike can be retrofitted with a Bosch ConnectModule.
+          maxLength: 30
+        rangeExtenderReadiness:
+          type: boolean
+          description: Indicator if the eBike can be retrofitted with a range extender.
+        speedRegionTypeId:
+          type: string
+          maxLength: 10
+          description: The ID of the installed regio speed application.
+        flashResult:
+          type: string
+          x-extensible-enum:
+            - value: BIKE_SUCCESS
+            - value: BIKE_FAILED
+            - value: BRC_ONLY_SUCCESS
+            - value: BRC_ONLY_FAILED
+            - value: PARAMETER_ONLY_SUCCESS
+            - value: PARAMETER_ONLY_FAILED
+            - value: SUCCESS_BUT_MISS_COMPONENTS
+            - value: ERROR_BUT_MISS_COMPONENTS
+            - value: TRANSFER_SUCCESS
+          maxLength: 30
+          description: Result of the BDP flash process.
+        timestamp:
+          type: string
+          format: date-time
+          description: timestamp when the bike was flashed.
+        installationMethod:
+          type: string
+          maxLength: 10
+          description: The choosen installation method.
+        releaseSetId:
+          type: string
+          format: uuid
+        components:
+          type: array
+          maxItems: 10
+          items:
+            type: object
+            required:
+              - partNumber
+              - serialNumber
+            properties:
+              productCode:
+                type: string
+                maxLength: 10
+                description: The product code of the component.
+              partNumber:
+                type: string
+                maxLength: 13
+                description: The part number of the component.
+              serialNumber:
+                type: string
+                maxLength: 25
+                description: The serial number of the component.
+              hardwareVersion:
+                type: string
+                maxLength: 11
+                description: The hardware version of the component.
+              softwareVersion:
+                type: string
+                maxLength: 62
+                description: The software version of the software running on the component.
+              bootloaderSoftwareVersion:
+                type: string
+                maxLength: 62
+                description: The software version of the bootloader running on the component during this boot process.
+              hardwareSoftwareVersion:
+                type: string
+                maxLength: 11
+                description: The hardware software version of the component.
+      x-stoplight:
+        id: yrd6sdzueaa9z
+    BikeTraceability:
+      title: BikeTraceability
+      type: object
+      required:
+        - id
+        - updatedAt
+      properties:
+        id:
+          type: string
+          description: The bike traceability data item ID.
+          example: 8772ec0f-953b-492c-83f5-2191ab325af6
+        bikeId:
+          type: string
+          format: uuid
+          description: The ID of the bike. Only available if the traceability is eligible for a non-pseudonymised representation.
+          example: 8fac1992-864d-4570-aaea-670ab204530f
+        driveUnit:
+          type: object
+          description: Drive Unit as unique identifier. Only available if the traceability is eligible for a non-pseudonymised representation.
+          required:
+            - partNumber
+            - serialNumber
+          properties:
+            serialNumber:
+              type: string
+              description: The serial number of the drive unit.
+              example: 27331-2298-43-300-00-0000
+              minLength: 25
+              maxLength: 25
+            partNumber:
+              type: string
+              description: The part number of the drive unit.
+              example: EB11100001
+              minLength: 10
+              maxLength: 13
+        updatedAt:
+          type: string
+          description: The timestamp when this bike traceability data item was changed latest.
+          example: '2024-08-30T14:15:22Z'
+          format: date-time
+        oem:
+          type: object
+          properties:
+            production:
+              type: object
+              properties:
+                producedAtYearWeek:
+                  type: string
+                  description: The year and week in ISO8601 format when the bike was produced.
+                  example: 2024-W26
+                  maxLength: 8
+                producedAt:
+                  type: string
+                  format: date-time
+                  description: The timestamp when the bike was produced. Only available if the traceability is eligible for a non-pseudonymised representation.
+                  example: '2024-06-26T11:14:33Z'
+                brandId:
+                  type: string
+                  description: The brand ID.
+                  example: Velocrest
+                  maxLength: 30
+                modelId:
+                  type: string
+                  description: The OEM specific model ID of the bike.
+                  example: '804100'
+                  maxLength: 200
+                skuNumber:
+                  type: string
+                  description: An identifier denoting the bike's SKU.
+                  example: '804100'
+                  maxLength: 64
+                skuName:
+                  type: string
+                  description: The SKU's name.
+                  example: ThunderPeak XT-500
+                  maxLength: 255
+            shipping:
+              type: object
+              properties:
+                shippedAtYearWeek:
+                  type: string
+                  example: 2024-W30
+                  description: The year and week in ISO8601 format when the bike was shipped to the dealer.
+                  maxLength: 8
+                shippedAt:
+                  type: string
+                  format: date-time
+                  description: The timestamp when the bike was shipped to the dealer. Only available if the traceability is eligible for a non-pseudonymised representation.
+                  example: '2024-07-23T08:41:12Z'
+                postCode:
+                  type: string
+                  example: '23456'
+                  description: The postcode of the dealer's location to which the bike was shipped. Only available if the traceability is eligible for a non-pseudonymised representation.
+                  maxLength: 10
+                postCodeFirstLetter:
+                  type: string
+                  example: '2'
+                  description: The first letter of the postcode of the dealer's location to which the bike was shipped.
+                  maxLength: 1
+                countryCode:
+                  type: string
+                  example: DE
+                  description: The two letter country code of the dealer's location to which the bike was shipped. In ISO 3166-1 alpha-2 format.
+                  minLength: 2
+                  maxLength: 2
+        dealer:
+          type: object
+          properties:
+            firstDiagnosticToolUsage:
+              type: object
+              properties:
+                usedAtYearWeek:
+                  type: string
+                  example: 2024-W34
+                  description: The year and week in ISO8601 format when the diagnostic tool was used for the first time at a dealer.
+                  maxLength: 8
+                usedAt:
+                  type: string
+                  format: date-time
+                  description: The timestamp when the diagnostic tool was used for the first time at a dealer. Only available if the traceability is eligible for a non-pseudonymised representation.
+                  example: '2024-08-22T16:35:55Z'
+        rider:
+          type: object
+          properties:
+            firstFlowAppUsage:
+              type: object
+              properties:
+                usedAtYearWeek:
+                  type: string
+                  description: The year and week when the the Flow App was paired for the first time with the bike in ISO8601 format.
+                  example: 2024-W35
+                  maxLength: 8
+                usedAt:
+                  type: string
+                  format: date-time
+                  description: The timestamp when the the Flow App was paired for the first time with the bike. Only available if the traceability is eligible for a non-pseudonymised representation.
+                  example: '2024-08-31T14:43:27Z'
+            firstFlowAppActivity:
+              type: object
+              properties:
+                recordedAtYearWeek:
+                  type: string
+                  description: The year and week when the the Flow App recorded the rider's first activity in ISO8601 format.
+                  example: 2024-W36
+                  maxLength: 8
+                recordedAt:
+                  type: string
+                  format: date-time
+                  description: The timestamp when the the Flow App recorded the rider's first activity. Only available if the traceability is eligible for a non-pseudonymised representation.
+                  example: '2024-09-02T08:02:10Z'
+                postCode:
+                  type: string
+                  example: '71234'
+                  description: The first letter of the postcode of the location in which the rider's first activity was started. Only available if the traceability is eligible for a non-pseudonymised representation.
+                  maxLength: 10
+                postCodeFirstLetter:
+                  type: string
+                  example: '7'
+                  description: The first letter of the postcode of the location in which the rider's first activity was started.
+                  maxLength: 1
+                countryCode:
+                  type: string
+                  example: DE
+                  description: The two letter country code of the location in which the rider's first activity was started. In ISO 3166-1 alpha-2 format.
+                  minLength: 2
+                  maxLength: 2
+      x-stoplight:
+        id: lznmwq5wga8x2
+    BulkItemStatus:
+      title: BulkItemStatus
+      type: object
+      required:
+        - pointer
+        - status
+      properties:
+        pointer:
+          type: string
+          description: A JSON pointer to locate the item within the request`s content.
+          format: json-pointer
+          example: /1
+        type:
+          type: string
+          format: uri-reference
+          description: |
+            A relative URI reference that uniquely identifies the problem type only in the context of the provided API.
+          example: /problems/validation-error
+        status:
+          type: integer
+          description: The HTTP status code describing the execution status of the bulk request item.
+          format: int32
+          example: 400
+        detail:
+          type: string
+          description: 'Human readable status explanation, containing additional context information about failure etc.'
+          example: Multiple validation errors
+        errors:
+          type: array
+          items:
+            type: object
+            required:
+              - detail
+            properties:
+              detail:
+                type: string
+                example: Field timestamp is not a valid date-time format.
+              pointer:
+                type: string
+                format: json-pointer
+                example: /1/timestamp
+                description: A JSON pointer to locate the problem within the request`s content.
+        requestId:
+          type: string
+          description: ID for this request.
+          example: 075be661d3a4460b98dee5d66849dd5e
+      x-stoplight:
+        id: komccs4dpqgay
+    BulkResponse:
+      title: BulkResponse
+      type: object
+      required:
+        - meta
+        - items
+      properties:
+        meta:
+          type: object
+          required:
+            - successCount
+            - failureCount
+          properties:
+            successCount:
+              type: integer
+              description: Number of successfully ingested bulk items.
+              format: int32
+            failureCount:
+              type: integer
+              description: Number of failed bulk items. `0` in case of response status code `200`.
+              format: int32
+        items:
+          type: array
+          description: 'Empty (`items[]`) in case of response status code `200`.'
+          items:
+            $ref: '#/components/schemas/BulkItemStatus'
+      x-stoplight:
+        id: gf7olpvbz9h9a
+    Problem:
+      type: object
+      title: Problem
+      required:
+        - type
+        - detail
+        - requestId
+      properties:
+        type:
+          type: string
+          format: uri-reference
+          description: |
+            A URI reference that uniquely identifies the problem type only in the context of the provided API. Opposed to the specification in RFC-7807, it is neither recommended to be dereferenceable and point to a human-readable documentation nor globally unique for the problem type.
+          default: 'about:blank'
+          example: /problems/connection-error
+        title:
+          type: string
+          description: |
+            A short summary of the problem type. Written in English and readable for engineers, usually not suited for non technical stakeholders and not localized.
+          example: Service Unavailable
+        status:
+          type: integer
+          format: int32
+          description: |
+            The HTTP status code generated by the origin server for this occurrence of the problem.
+          minimum: 100
+          maximum: 600
+          exclusiveMaximum: true
+          example: 503
+        detail:
+          type: string
+          description: |
+            A human readable explanation specific to this occurrence of the problem that is helpful to locate the problem and give advice on how to proceed. Written in English and readable for engineers, usually not suited for non technical stakeholders and not localized.
+          example: Connection to database timed out
+        instance:
+          type: string
+          example: /problem/connection-error#token-info-read-timed-out
+          format: uri-reference
+          description: |
+            A URI reference that identifies the specific occurrence of the problem, e.g. by adding a fragment identifier or sub-path to the problem type. May be used to locate the root of this problem in the source code.
+        requestId:
+          type: string
+          description: ID for this request.
+          example: 075be661d3a4460b98dee5d66849dd5e
+      x-stoplight:
+        id: og7409yyltubp
+  securitySchemes:
+    Client:
+      type: oauth2
+      flows:
+        clientCredentials:
+          tokenUrl: 'https://p9.authz.bosch.com/auth/realms/obc/protocol/openid-connect/token'
+          refreshUrl: 'https://p9.authz.bosch.com/auth/realms/obc/protocol/openid-connect/token'
+          scopes: {}
+  responses:
+    UnauthorizedResponse:
+      description: |
+        Unauthorized
+      content:
+        text/plain:
+          schema:
+            type: string
+          examples:
+            access-token-expired:
+              value: JWT is expired
+            access-token-validation-failed:
+              value: JWT verification failed
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    ForbiddenResponse:
+      description: |
+        Forbidden
+      content:
+        text/plain:
+          schema:
+            type: string
+            description: Error from Istio
+          examples:
+            access-denied:
+              value: 'RBAC: access denied'
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'

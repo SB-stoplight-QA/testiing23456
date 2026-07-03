@@ -1,0 +1,114 @@
+{
+  "collapseTableOfContents": false,
+  "items": [
+    {
+      "type": "item",
+      "title": "Introduction",
+      "uri": "/docs/Introduction.md",
+      "slug": "introduction"
+    },
+    {
+      "type": "item",
+      "title": "Release Notes",
+      "uri": "/docs/Release-Notes.md",
+      "slug": "release-notes"
+    },
+    {
+      "type": "divider",
+      "title": "APIs"
+    },
+    {
+      "type": "group",
+      "title": "Cloud API for eBike Flow app",
+      "uri": "/docs/Flow-Cloud-API.md",
+      "items": [
+        {
+          "type": "item",
+          "title": "eBike Profile API",
+          "uri": "/openapi/eBikeProfile.v1.yaml",
+          "slug": "ebike-profile-api"
+        },
+        {
+          "type": "item",
+          "title": "Activity Records API",
+          "uri": "/openapi/activityRecords.v1.yaml",
+          "slug": "activity-records-api"
+        },
+        {
+          "type": "item",
+          "title": "(Draft 🚧) Commerce API",
+          "uri": "/openapi/commerce.v1.yaml",
+          "slug": "commerce-api"
+        }
+      ]
+    },
+    {
+      "type": "group",
+      "title": "Cloud API for eBike Registration",
+      "items": [
+        {
+          "type": "item",
+          "title": "eBike Registration API",
+          "uri": "/openapi/eBikeRegistration.v1.yaml",
+          "slug": "ebike-registration-api"
+        }
+      ]
+    },
+    {
+      "type": "group",
+      "title": "Cloud API for ConnectModule",
+      "uri": "/docs/BCM-Cloud-API.md",
+      "items": [
+        {
+          "type": "item",
+          "title": "ConnectModule Configuration API",
+          "uri": "/openapi/bcmConfiguration.v1.yaml",
+          "slug": "connectmodule-configuration-api"
+        },
+        {
+          "type": "item",
+          "title": "ConnectModule Configuration API",
+          "uri": "/openapi/bcmConfiguration.v2.yaml",
+          "slug": "connectmodule-configuration-api-v2"
+        },
+        {
+          "type": "item",
+          "title": "(Draft 🚧) ConnectModule Configuration API",
+          "uri": "/openapi/bcmConfiguration.v2.draft.yaml",
+          "slug": "connectmodule-configuration-api-v2-draft"
+        },
+        {
+          "type": "item",
+          "title": "Notification API",
+          "uri": "/openapi/notification.v1.yaml",
+          "slug": "notification-api"
+        }
+      ]
+    },
+    {
+      "type": "group",
+      "title": "Cloud API for eBike product data",
+      "uri": "/docs/Data-Cloud-API.md",
+      "items": [
+        {
+          "type": "item",
+          "title": "Supply Chain Data API",
+          "uri": "/openapi/supplyChainData.v2.yaml",
+          "slug": "supply-chain-data-api-v2"
+        },
+        {
+          "type": "item",
+          "title": "eBike Model Ingestion API",
+          "uri": "/openapi/eBikeModelIngestion.v1.yaml",
+          "slug": "ebike-model-ingestion-api"
+        },
+        {
+          "type": "item",
+          "title": "(Draft 🚧) eBike Model API",
+          "uri": "/openapi/eBikeModel.v1.yaml",
+          "slug": "ebike-model-api"
+        }
+      ]
+    }
+  ]
+}

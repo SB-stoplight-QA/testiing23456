@@ -1,0 +1,362 @@
+openapi: 3.0.3
+x-stoplight:
+  id: arn105prkxzpe
+info:
+  title: eBike Registration API
+  version: 1.0.1
+  description: |-
+    The eBike Registration API manages registrations of bikes and components. It supports operations to list registration, register and deregister.
+
+    All writing API operations (register and deregister) follow the all-or-nothing approach. This means that either all requested changes will be made, or none in case of a conflict or error.
+  contact:
+    email: cloud-api.support@de.bosch.com
+    name: Bosch eBike Systems Support
+servers:
+  - description: Production
+    url: 'https://api.bosch-ebike.com/registration/v1'
+security:
+  - Client: []
+tags:
+  - name: List
+    description: Registration listing
+  - name: Register
+    description: Register bikes and components
+  - name: Deregister
+    description: Deregister bikes and components
+paths:
+  /registrations:
+    post:
+      summary: Register bikes and/or components
+      operationId: register
+      responses:
+        '200':
+          description: Bikes and/or components registered successfully
+        '400':
+          $ref: '#/components/responses/ProblemResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenResponse'
+        '409':
+          $ref: '#/components/responses/ProblemResponse'
+        '500':
+          $ref: '#/components/responses/ProblemResponse'
+        default:
+          $ref: '#/components/responses/ProblemResponse'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegistrationRequest'
+            examples:
+              Register a bike and a component:
+                value:
+                  bikes:
+                    - bikeId: aee92d17-b30b-4841-aa40-c0573569b04c
+                      driveUnit:
+                        partNumber: EB11100001
+                        serialNumber: 13923-0359-43-300-00-0000
+                  components:
+                    - partNumber: EB1310000B
+                      serialNumber: 17918-0052-01-368-00-0000
+              Register a bike only:
+                value:
+                  bikes:
+                    - bikeId: aee92d17-b30b-4841-aa40-c0573569b04c
+                      driveUnit:
+                        partNumber: EB11100001
+                        serialNumber: 13923-0359-43-300-00-0000
+              Register a component only:
+                value:
+                  components:
+                    - partNumber: EB1310000B
+                      serialNumber: 17918-0052-01-368-00-0000
+      description: Registers bikes and/or components for the requesting client. - Registration of a bike can only happen in combination with a driveUnit. - Only components of type ConnectModule can be registered.
+      tags:
+        - Register
+      x-stoplight:
+        id: 2s5d7gt6owsos
+    get:
+      summary: List all registrations
+      operationId: get-registrations
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegistrationResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenResponse'
+        '500':
+          $ref: '#/components/responses/ProblemResponse'
+        default:
+          $ref: '#/components/responses/ProblemResponse'
+      description: Returns bike and/or component registrations for the requesting client.
+      tags:
+        - List
+      x-stoplight:
+        id: ltc4f4wp4x0ge
+  /registrations/deregister:
+    post:
+      summary: Deregister bikes and/or components
+      operationId: deregister
+      responses:
+        '204':
+          description: Bikes and/or components deregisterd successfully
+        '400':
+          $ref: '#/components/responses/ProblemResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedResponse'
+        '403':
+          $ref: '#/components/responses/ForbiddenResponse'
+        '409':
+          $ref: '#/components/responses/ProblemResponse'
+        '500':
+          $ref: '#/components/responses/ProblemResponse'
+        default:
+          $ref: '#/components/responses/ProblemResponse'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegistrationRequest'
+            examples:
+              Deregister a bike and a component:
+                value:
+                  bikes:
+                    - bikeId: aee92d17-b30b-4841-aa40-c0573569b04c
+                      driveUnit:
+                        partNumber: EB11100001
+                        serialNumber: 13923-0359-43-300-00-0000
+                  components:
+                    - partNumber: EB1310000B
+                      serialNumber: 17918-0052-01-368-00-0000
+              Deregister a bike only:
+                value:
+                  bikes:
+                    - bikeId: aee92d17-b30b-4841-aa40-c0573569b04c
+                      driveUnit:
+                        partNumber: EB11100001
+                        serialNumber: 13923-0359-43-300-00-0000
+              Deregister a component only:
+                value:
+                  components:
+                    - partNumber: EB1310000B
+                      serialNumber: 17918-0052-01-368-00-0000
+      description: |
+        Deregister bikes and components. Registration can be removed only, if the requesting client registered it initally. Deregistration of a bike or driveUnit can only happen in combination.
+      tags:
+        - Deregister
+      x-stoplight:
+        id: ngj5mn3ttq2jt
+components:
+  schemas:
+    RegistrationRequest:
+      title: RegistrationRequest
+      type: object
+      properties:
+        bikes:
+          type: array
+          maxItems: 500
+          items:
+            $ref: '#/components/schemas/Bike'
+        components:
+          type: array
+          maxItems: 500
+          items:
+            $ref: '#/components/schemas/Component'
+      x-stoplight:
+        id: crqtjnw4w6k47
+    RegistrationResponse:
+      title: RegistrationResponse
+      type: object
+      properties:
+        registrations:
+          type: array
+          items:
+            type: object
+            required:
+              - registrationType
+            properties:
+              registrationType:
+                type: string
+                enum:
+                  - BIKE_REGISTRATION
+                  - COMPONENT_REGISTRATION
+                readOnly: true
+              createdAt:
+                type: string
+                format: date-time
+                example: '2024-04-04T04:04:04Z'
+                description: Timestamp when bike or component has been registered.
+                readOnly: true
+              bikeRegistration:
+                type: object
+                required:
+                  - bikeId
+                properties:
+                  bikeId:
+                    type: string
+                    format: uuid
+                    description: Bosch unique eBike system ID.
+              componentRegistration:
+                $ref: '#/components/schemas/Component'
+      x-stoplight:
+        id: 505g0wxmrn97r
+    Bike:
+      title: Bike
+      type: object
+      properties:
+        bikeId:
+          type: string
+          format: uuid
+          description: Bosch unique eBike system ID.
+        driveUnit:
+          type: object
+          required:
+            - partNumber
+            - serialNumber
+          properties:
+            partNumber:
+              type: string
+              description: The part number of the drive unit.
+              maxLength: 13
+              example: EB11100001
+              minLength: 10
+            serialNumber:
+              type: string
+              description: The serial number of the drive unit.
+              maxLength: 25
+              example: 13923-0359-43-300-00-0000
+              minLength: 25
+      required:
+        - bikeId
+        - driveUnit
+      x-stoplight:
+        id: 3ouuh0ryikf87
+    Problem:
+      type: object
+      title: Problem
+      properties:
+        type:
+          type: string
+          format: uri-reference
+          description: |
+            A URI reference that uniquely identifies the problem type only in the context of the provided API. Opposed to the specification in RFC-7807, it is neither recommended to be dereferenceable and point to a human-readable documentation nor globally unique for the problem type.
+          default: 'about:blank'
+          example: /problems/connection-error
+        title:
+          type: string
+          description: |
+            A short summary of the problem type. Written in English and readable for engineers, usually not suited for non technical stakeholders and not localized.
+          example: Service Unavailable
+        status:
+          type: integer
+          format: int32
+          description: |
+            The HTTP status code generated by the origin server for this occurrence of the problem.
+          minimum: 100
+          maximum: 599
+          example: 503
+        detail:
+          type: string
+          description: |
+            A human readable explanation specific to this occurrence of the problem that is helpful to locate the problem and give advice on how to proceed. Written in English and readable for engineers, usually not suited for non technical stakeholders and not localized.
+          example: Connection to database timed out
+        instance:
+          type: string
+          example: /problem/connection-error#token-info-read-timed-out
+          format: uri-reference
+          description: |
+            A URI reference that identifies the specific occurrence of the problem, e.g. by adding a fragment identifier or sub-path to the problem type. May be used to locate the root of this problem in the source code.
+        requestId:
+          type: string
+          description: ID for this request.
+          example: 075be661d3a4460b98dee5d66849dd5e
+      required:
+        - type
+        - detail
+        - requestId
+      x-stoplight:
+        id: 9xfen5c7u4ysz
+    Component:
+      title: Component
+      type: object
+      required:
+        - partNumber
+        - serialNumber
+        - componentType
+      properties:
+        partNumber:
+          type: string
+          x-extensible-enum:
+            - value: EB1310000B
+          description: The part number of the component.
+          example: EB1310000B
+          minLength: 10
+          maxLength: 13
+        serialNumber:
+          type: string
+          description: The serial number of the component.
+          example: 17918-0052-01-368-00-0000
+          minLength: 25
+          maxLength: 25
+        componentType:
+          type: string
+          x-extensible-enum:
+            - value: DRIVE_UNIT
+            - value: CONNECT_MODULE
+          example: CONNECT_MODULE
+          readOnly: true
+      x-stoplight:
+        id: fuvexyw17p2s0
+  responses:
+    ProblemResponse:
+      description: |
+        Problem occurred, details in respective method & rest resource.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    UnauthorizedResponse:
+      description: |
+        Unauthorized
+      content:
+        text/plain:
+          schema:
+            type: string
+          examples:
+            access-token-expired:
+              value: JWT is expired
+            access-token-validation-failed:
+              value: JWT verification failed
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    ForbiddenResponse:
+      description: |
+        Forbidden
+      content:
+        text/plain:
+          schema:
+            type: string
+            description: Error from Istio
+          examples:
+            access-denied:
+              value: 'RBAC: access denied'
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+  securitySchemes:
+    Client:
+      type: oauth2
+      flows:
+        clientCredentials:
+          tokenUrl: 'https://p9.authz.bosch.com/auth/realms/obc/protocol/openid-connect/token'
+          refreshUrl: 'https://p9.authz.bosch.com/auth/realms/obc/protocol/openid-connect/token'
+          scopes: {}

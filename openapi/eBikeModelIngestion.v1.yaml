@@ -1,0 +1,840 @@
+openapi: 3.0.4
+x-stoplight:
+  id: t962jj4vemdj2
+info:
+  title: eBike Model Ingestion API
+  version: 1.1.0
+  description: |
+    This API allows you to upload bike model information like bike specifications and bike images
+    to be served by the eBike Flow app when users are connecting to a specific bike. 
+    Bike model information is uploaded as a set of files: 
+
+    - Structured data can be uploaded as either CSV or JSON files.
+    - Bike images can be uploaded as PNG files.
+    - Bike manuals can be uploaded as PDF files.
+
+    The API supports the notion of `revisions`, helping you to organize an stage your files.
+    You can think of a `revisions` as being individual drawers, with each drawer containing
+    a specific version of the complete information you want to publish. 
+    You can than control which revision shall be used when actually serving data to the eBike Flow app. 
+
+    In a typical workflow, you upload your files to a revision of your choice, and after successful upload, 
+    you can flag your revision for publishing. 
+    As a result, the files in that revision will automatically be validated, transformed and published 
+    to the data delivery system by a scheduled job that runs on a specified schedule.
+    You can use the `/revisions/status` API to query your current publishing status.  
+
+    A typical workflow for updating data that is already published is to upload the new version of your 
+    data into a new revision, and after successful upload, flag that new revision for publishing.
+    The scheduled job, will than validate your new data, and if valid, fully replace the published data 
+    with the data from the new revision.
+
+    You can keep old revisions and switch back to them by flagging one of your old revisions for publishing.
+  contact:
+    email: cloud-api.support@de.bosch.com
+    name: Bosch eBike Systems Support
+servers:
+  - description: Production
+    url: 'https://api.bosch-ebike.com/bike-model-ingestion/v1'
+security:
+  - Client_PROD: []
+tags:
+  - name: Revisions
+  - name: Files
+  - name: Status
+paths:
+  /revisions:
+    get:
+      summary: Get list of all revision names
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              schema:
+                type: string
+              description: application/json
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RevisionList'
+              examples:
+                list-of-revisions:
+                  value:
+                    revisions:
+                      - revision1
+                      - revision2
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+        '500':
+          $ref: '#/components/responses/500'
+        '503':
+          $ref: '#/components/responses/503'
+      operationId: get-bike-model-data-revisions
+      description: Returns the list of all revision names.
+      tags:
+        - Revisions
+      x-stoplight:
+        id: imb8d3sps4spf
+  '/revisions/{revisionName}':
+    delete:
+      parameters:
+        - $ref: '#/components/parameters/RevisionNameParameter'
+      summary: Delete a revision
+      responses:
+        '204':
+          description: Revision deleted
+        '400':
+          description: Bad Request
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+              examples:
+                validation-error:
+                  value:
+                    detail: |
+                      Invalid value for parameter 'revisionName' in path.
+                    requestId: d4af4b7cc7db424e80a7a84557d53001
+                    type: /validation-error
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+        '404':
+          description: Requested revision was not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+              examples:
+                resource-not-found:
+                  value:
+                    detail: Requested revision was not found
+                    requestId: 7a019a28cf6d49ea8b5950626f51e50e
+                    type: /resource-error/not-found
+        '412':
+          description: |
+            Revision can not be deleted because it is used in a running publishing process.
+            Use the "/revisions/status" API for getting the details.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '500':
+          $ref: '#/components/responses/500'
+        '503':
+          $ref: '#/components/responses/503'
+      operationId: delete-bike-model-data-revisions-revision-name
+      tags:
+        - Revisions
+      description: Delete a revision with all files stored in the revision.
+      x-stoplight:
+        id: pmj6f3sl2s9lk
+  '/revisions/{revisionName}/files':
+    get:
+      summary: List files of a revision
+      parameters:
+        - $ref: '#/components/parameters/RevisionNameParameter'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RevisionContent'
+              examples:
+                revision-contents:
+                  value:
+                    files:
+                      - name: image1.png
+                        time: '2024-01-22T15:00:00+00:00'
+                        size: 424242
+                      - name: list.csv
+                        time: '2024-01-22T15:05:00+00:00'
+                        size: 4242
+        '400':
+          description: Bad Request
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+              examples:
+                validation-error:
+                  value:
+                    detail: |
+                      Invalid value for parameter 'revisionName' in path.
+                    requestId: d4af4b7cc7db424e80a7a84557d53001
+                    type: /validation-error
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+        '404':
+          description: Requested revision was not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+              examples:
+                resource-not-found:
+                  value:
+                    detail: Requested revision was not found
+                    requestId: 7a019a28cf6d49ea8b5950626f51e50e
+                    type: /resource-error/not-found
+        '500':
+          $ref: '#/components/responses/500'
+        '503':
+          $ref: '#/components/responses/503'
+      operationId: get-bike-model-data-revisions-revision-name
+      description: |
+        Returns a list of all file names in a given revision.
+      tags:
+        - Files
+      x-stoplight:
+        id: 4suq5ayfcr1fw
+  '/revisions/{revisionName}/files/{fileName}':
+    get:
+      parameters:
+        - $ref: '#/components/parameters/RevisionNameParameter'
+        - $ref: '#/components/parameters/FileNameParameter'
+      summary: Download a file
+      description: |
+        Downloads a specific file from a revision.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+            text/csv:
+              schema:
+                type: string
+            image/png:
+              schema:
+                type: string
+                format: binary
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        '400':
+          description: Bad Request
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+              examples:
+                validation-error:
+                  value:
+                    detail: |
+                      Invalid value for parameter 'fileName' in path.
+                    requestId: d4af4b7cc7db424e80a7a84557d53001
+                    type: /validation-error
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+        '404':
+          description: Requested file was not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+              examples:
+                resource-not-found:
+                  value:
+                    detail: Requested file was not found
+                    requestId: 7a019a28cf6d49ea8b5950626f51e50e
+                    type: /resource-error/not-found
+        '500':
+          $ref: '#/components/responses/500'
+        '503':
+          $ref: '#/components/responses/503'
+      operationId: get-bike-model-data-files-revision-name-file-name
+      tags:
+        - Files
+      x-stoplight:
+        id: 4s3glj845ijog
+    put:
+      summary: Create or update a file
+      parameters:
+        - $ref: '#/components/parameters/RevisionNameParameter'
+        - $ref: '#/components/parameters/FileNameParameter'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+          text/csv:
+            schema:
+              type: string
+          image/png:
+            schema:
+              type: string
+              format: binary
+          application/pdf:
+            schema:
+              type: string
+              format: binary
+      responses:
+        '200':
+          description: File successfully updated
+        '201':
+          description: File successfully created
+        '400':
+          description: Bad Request
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+              examples:
+                validation-error:
+                  value:
+                    detail: |
+                      Invalid value for parameter 'fileName' in path.
+                    requestId: d4af4b7cc7db424e80a7a84557d53001
+                    type: /validation-error
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+        '412':
+          description: |
+            File can not be changed as its revision is used in a running publishing process.
+            Use the "/revisions/status" API for getting the details.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '500':
+          $ref: '#/components/responses/500'
+        '503':
+          $ref: '#/components/responses/503'
+      operationId: put-bike-model-data-files-revision-name-file-name
+      description: |
+        Uploads a file to the given revision. If the revision does not yet exist, it gets created. 
+        If a file with the given file name already exists in a revision with the given revision name, the file gets overwritten.
+
+        You can upload CSV, JSON, PDF and image PNG files only. As a result, allowed mime-types values for the `Content-Type` header are:
+        - `text/csv;charset=UTF-8` 
+        - `application/json`
+        - `application/pdf`
+        - `image/png` 
+
+        Other file types are rejected with a 400 response.
+
+        If the current status is in `publishingStatus: running` you cannot post to the revision mentioned in the
+        `pendingRevision` property.
+      tags:
+        - Files
+      x-stoplight:
+        id: ch4j5uglqcc08
+    delete:
+      summary: Delete a file
+      parameters:
+        - $ref: '#/components/parameters/RevisionNameParameter'
+        - $ref: '#/components/parameters/FileNameParameter'
+      responses:
+        '204':
+          description: File deleted
+        '400':
+          description: Bad Request
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+              examples:
+                validation-error:
+                  value:
+                    detail: |
+                      Invalid value for parameter 'revisionName' in path.
+                    requestId: d4af4b7cc7db424e80a7a84557d53001
+                    type: /validation-error
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+        '404':
+          description: Requested file was not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+              examples:
+                resource-not-found:
+                  value:
+                    detail: Requested file was not found
+                    requestId: 7a019a28cf6d49ea8b5950626f51e50e
+                    type: /resource-error/not-found
+        '412':
+          description: |
+            File can not be deleted as its revision is used in a running publishing process.
+            Use the "/revisions/status" API for getting the details.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '500':
+          $ref: '#/components/responses/500'
+        '503':
+          $ref: '#/components/responses/503'
+      operationId: delete-bike-model-data-revisions-revision-name-file-name
+      description: |
+        Delete a file.
+      tags:
+        - Files
+      x-stoplight:
+        id: r9ittznlac65q
+  /revisions/status:
+    get:
+      summary: Current publishing status
+      responses:
+        '200':
+          description: OK
+          headers:
+            Content-Type:
+              schema:
+                type: string
+              description: application/json
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Status'
+              examples:
+                idle-initial-status:
+                  value:
+                    publishingStatus: IDLE
+                idle-revision1-is-live:
+                  value:
+                    publishingStatus: IDLE
+                    publishedRevisionName: revision1
+                running-data-pending-validation:
+                  value:
+                    publishingStatus: PENDING
+                    publishedRevisionName: revision1
+                    pendingRevisionName: revision2
+                idle-data-failed-validation:
+                  value:
+                    publishingStatus: INVALID
+                    publishedRevisionName: revision1
+                    pendingRevisionName: revision2
+                    validationErrors:
+                      - type: /error/image_not_transparent
+                        detail: Image img1.png does not have a transparent background.
+                running-data-pending-publishing:
+                  value:
+                    publishingStatus: PUBLISHING
+                    publishedRevisionName: revision1
+                    pendingRevisionName: revision2
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+        '500':
+          $ref: '#/components/responses/500'
+        '503':
+          $ref: '#/components/responses/503'
+      operationId: get-bike-model-data-status
+      description: Returns the current publishing status
+      tags:
+        - Status
+      x-stoplight:
+        id: o3lzfadaoceu6
+  '/revisions/{revisionName}/publish':
+    post:
+      summary: Request to publish a revision
+      parameters:
+        - $ref: '#/components/parameters/RevisionNameParameter'
+      description: |
+        Use this method to request publishing a specific revision. If there is already a live revision, that was published earlier, 
+        that revision stays live until the requested publishing operation succeeds. 
+        After successful publishing, the published revision is switched to being live in an atomic operation.
+
+        You cannot trigger multiple publishing requests at the same time. 
+        If you request a new publishing operation while a previous request is still running
+        (i.e. if the current publishing status is `PENDING` or `PUBLISHING` and not `IDLE` or `INVALID`), 
+        the service will return a 412 error. 
+        You can get the current publishing status by calling the `/revisions/status` API. 
+
+        The value `publishingStatus: IDLE` indicates that there is currently no publishing request running. 
+        If there was a previous successful publishing, the `publishedRevisionName` property will contain the name 
+        of that previously published revision. Data from that revision is considered to be "live" and actually served to 
+        the eBike Flow app.
+
+        After requesting a revision to be published, the publishing status will change to `publishingStatus: PENDING`.
+        This indicates that the request was successfully submitted and the publishing request is queued up for execution. 
+
+        After some time, a queued publishing request will be executed. The first step in execution is to validate the 
+        uploaded files. If the validation succeeds, the publishing status will change to `publishingStatus: PUBLISHING` 
+        indicating that the files are now deployed to the cloud services serving the data to the eBike Flow app.
+
+        If the validation fails, the publishing status will change to `publishingStatus: INVALID` and
+        the `validationErrors` object of the status object will contain the details on the failed validations.
+        The request is considered terminated in this case. 
+
+        After successful validation and publishing the files to the cloud services, the just published revision will be switched 
+        to be the published (or "live") revision. Files from that revision will now be served to the eBike Flow app, 
+        and the publishing status will change to `publishingStatus: IDLE`. 
+
+        ### Examples
+        #### Initial Status
+
+        ```
+        {
+          "publishingStatus": "IDLE"
+        }
+        ```
+        This status indicates that there is no published revision, i.e. no bike model data will be served to the eBike Flow app, and
+        there is no publishing request running. In this state you can
+        call this method to select a specific revision to be published.
+
+        #### Publishing request running (validation pending)  
+
+        ```
+        {
+          "publishingStatus": "PENDING",
+          "pendingRevisionName": "revision1"
+        }
+        ```
+        This status indicates that there is a publishing request running. The `publishingStatus: PENDING` indicates that 
+        the data has not yet been validated in the back-end.    
+
+        #### Publishing request running (validation succeeded)  
+
+        ```
+        {
+          "publishingStatus": "PUBLISHING",
+          "pendingRevisionName": "revision1",
+        }
+        ```
+        This status indicates that there is a publishing request running. The `publishingStatus: PUBLISHING` indicates that 
+        the data has successfully been validated in the back-end and the data is in process of being published.     
+
+        #### Publishing succeeded  
+
+        ```
+        {
+          "publishingStatus": "IDLE",
+          "liveRevisionName": "revision1"
+        }
+        ```
+        This status indicates that there is a no publishing request running and "revision1" has successfully been
+        published. The data contained is this revision is served to the eBike Flow app.
+
+        #### Publishing request running (validation failed)  
+
+        ```
+        {
+          "publishingStatus": "INVALID",
+          "pendingRevisionName": "revision2",
+          "validationErrors": [{"type":"/error/image_not_transparent", "detail": "Image img1.png does not have a transparent background."}]
+          "publishedRevisionName": "revision1"
+        }
+        ```
+
+        This status indicates that there is no publishing request running. The `validationStatus: INVALID` indicates that 
+        the validation of the data in "revision2" failed. You can now start to upload new/other files to "revision2" 
+        and than retry the activation, or activate a different revision.
+        In this example, "revision1" which was previously published is still live, and the data from that revision
+        is still served to the eBike Flow app.
+      responses:
+        '202':
+          description: |
+            The publishing request has successfully been submitted. You can use the `/revisions/status` API to track the 
+            corresponding validation result and publishing progress.
+        '400':
+          description: Bad Request
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+        '404':
+          description: Selected revision was not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+              examples:
+                resource-not-found:
+                  value:
+                    detail: Selected revision was not found
+                    requestId: 7a019a28cf6d49ea8b5950626f51e50e
+                    type: /resource-error/not-found
+        '412':
+          description: |
+            Publishing cannot be triggered because there is a running publishing process already.
+            Use the "/revisions/status" API for getting the details.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '500':
+          $ref: '#/components/responses/500'
+        '503':
+          $ref: '#/components/responses/503'
+      operationId: publish-revision
+      tags:
+        - Status
+      x-stoplight:
+        id: utkgf6axeas4g
+  '/revisions/{revisionName}/unpublish':
+    post:
+      summary: Request to unpublish a revision
+      parameters:
+        - $ref: '#/components/parameters/RevisionNameParameter'
+      description: |
+        Use this method to request unpublishing a published revision.  
+        After successful unpublishing, no more data will be served to the eBike Flow app
+        until you publish another revision.
+
+        A unpublish request is treated like a publishing request with `pendingRevisionName` 
+        being `None`. You cannot trigger multiple publishing requests at the same time. 
+        If you request a new unpublishing operation while a previous request is still running
+        (i.e. if the current publishing status is `PENDING` or `PUBLISHING` and not `IDLE` or `INVALID`), 
+        the service will return a 412 error. 
+        You can get the current publishing status by calling the `/revisions/status` API. 
+      responses:
+        '202':
+          description: |
+            The unpublishing request has successfully been submitted. You can use the `/revisions/status` API to track the 
+            publishing progress.
+        '400':
+          description: Bad Request
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '401':
+          $ref: '#/components/responses/401'
+        '403':
+          $ref: '#/components/responses/403'
+        '404':
+          description: Selected revision was not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+              examples:
+                resource-not-found:
+                  value:
+                    detail: Selected revision was not found
+                    requestId: 7a019a28cf6d49ea8b5950626f51e50e
+                    type: /resource-error/not-found
+        '412':
+          description: |
+            Unpublishing cannot be triggered because there is a running publishing process already.
+            Use the "/revisions/status" API for getting the details.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '500':
+          $ref: '#/components/responses/500'
+        '503':
+          $ref: '#/components/responses/503'
+      operationId: unpublish-revision
+      tags:
+        - Status
+      x-stoplight:
+        id: wi4c6twqhonai
+components:
+  schemas:
+    RevisionList:
+      type: object
+      properties:
+        revisions:
+          type: array
+          items:
+            $ref: '#/components/schemas/RevisionName'
+      x-stoplight:
+        id: ttzl0jc8doa69
+    RevisionContent:
+      type: object
+      properties:
+        files:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                $ref: '#/components/schemas/FileName'
+              created:
+                type: string
+                format: date-time
+              size:
+                type: integer
+                format: int32
+      x-stoplight:
+        id: dj2i67pgtnux0
+    Status:
+      type: object
+      properties:
+        publishingStatus:
+          type: string
+          enum:
+            - IDLE
+            - PENDING
+            - INVALID
+            - PUBLISHING
+        pendingRevisionName:
+          $ref: '#/components/schemas/RevisionName'
+        publishedRevisionName:
+          $ref: '#/components/schemas/RevisionName'
+        validationErrors:
+          type: array
+          items:
+            $ref: '#/components/schemas/ValidationError'
+      required:
+        - publishingStatus
+      x-stoplight:
+        id: 9im92d8y76srm
+    RevisionName:
+      title: Revision Name
+      type: string
+      maxLength: 64
+      pattern: '^[a-zA-Z_\-0-9 ]*$'
+      x-stoplight:
+        id: qiue4c3t8magp
+    FileName:
+      title: File Name
+      type: string
+      maxLength: 64
+      pattern: '^[a-zA-Z_\-\.0-9 ]*$'
+      x-stoplight:
+        id: wuy6ihudlbzal
+    Problem:
+      type: object
+      title: Problem
+      properties:
+        type:
+          type: string
+          format: uri-reference
+          description: |
+            A URI reference that uniquely identifies the problem type only in the context of the provided API. Opposed to the specification in RFC-7807, it is neither recommended to be dereferenceable and point to a human-readable documentation nor globally unique for the problem type.
+          default: 'about:blank'
+          example: /some/uri-reference
+        title:
+          type: string
+          description: |
+            A short summary of the problem type. Written in English and readable for engineers, usually not suited for non technical stakeholders and not localized.
+          example: some title for the error situation
+        status:
+          type: integer
+          format: int32
+          description: |
+            The HTTP status code generated by the origin server for this occurrence of the problem.
+          minimum: 100
+          maximum: 600
+          exclusiveMaximum: true
+        detail:
+          type: string
+          description: |
+            A human readable explanation specific to this occurrence of the problem that is helpful to locate the problem and give advice on how to proceed. Written in English and readable for engineers, usually not suited for non technical stakeholders and not localized.
+          example: some description for the error situation
+        instance:
+          type: string
+          format: uri-reference
+          description: |
+            A URI reference that identifies the specific occurrence of the problem, e.g. by adding a fragment identifier or sub-path to the problem type. May be used to locate the root of this problem in the source code.
+          example: /some/uri-reference#specific-occurrence-context
+        requestId:
+          type: string
+          description: ID for this request.
+          example: 075be661d3a4460b98dee5d66849dd5e
+      required:
+        - type
+        - detail
+        - requestId
+      x-stoplight:
+        id: s3pn5vkct2c0u
+    ValidationError:
+      title: Validation Error
+      type: object
+      properties:
+        type:
+          type: string
+          format: uri-reference
+        detail:
+          type: string
+      required:
+        - type
+        - detail
+      x-stoplight:
+        id: i2vfrl3hkuhcd
+  securitySchemes:
+    Client_PROD:
+      type: oauth2
+      flows:
+        clientCredentials:
+          tokenUrl: 'https://p9.authz.bosch.com/auth/realms/obc/protocol/openid-connect/token'
+          refreshUrl: 'https://p9.authz.bosch.com/auth/realms/obc/protocol/openid-connect/token'
+          scopes: {}
+      description: Bosch Customer Identity and Access Management
+  responses:
+    '401':
+      description: Unauthorized
+      content:
+        text/plain:
+          schema:
+            type: string
+          examples:
+            access-token-expired:
+              value: JWT is expired
+            access-token-validation-failed:
+              value: JWT verification fails
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    '403':
+      description: Forbidden
+      content:
+        text/plain:
+          schema:
+            type: string
+          examples:
+            access-token-missing:
+              value: 'RBAC: access denied'
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    '500':
+      description: Internal Server Error
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          examples:
+            internal-server-error:
+              value:
+                detail: an unexpected error occured
+                requestId: 798a1836ee1a4a39b9e43f6425135bbe
+                type: /internal-server-error
+    '503':
+      description: Service unavailable
+  parameters:
+    RevisionNameParameter:
+      description: |
+        The name of a revision. Nested revisions are not allowed. Revision names have to be unique. 
+        Revisions are used to group uploaded files. You can configure one of your revisions to be 'live'.
+      schema:
+        $ref: '#/components/schemas/RevisionName'
+      name: revisionName
+      in: path
+      required: true
+    FileNameParameter:
+      description: |
+        The name of a file. Files are stored in revisions. Files stored in the same revision must have unique file names. 
+        The combination of revision name and file name uniquely identifies a specific file.
+      schema:
+        $ref: '#/components/schemas/FileName'
+      name: fileName
+      in: path
+      required: true

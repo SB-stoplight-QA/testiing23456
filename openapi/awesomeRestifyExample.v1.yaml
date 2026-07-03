@@ -1,0 +1,430 @@
+openapi: 3.0.4
+x-stoplight:
+  id: dqmfcw8765xkd
+info:
+  title: RESTify Example API
+  version: 0.2.0
+  description: |-
+    This API showcases various topics from our [RESTful API Guidelines](https://platform.ebike.dev/guidelines/restful-api-guidelines.md) such as:
+    - Caching headers
+    - Deprecation and sunset headers
+    - Offset pagination meta data and links
+    - Unauthorized (401) and forbidden (403) responses
+    - Problem+json error responses
+    - Default response
+    - OIDC security schemes with scopes
+    - Rate limiting response headers
+    - Health operation
+    - URL-based versioning (server URL)
+    - Various datamodel extensions (x-entity-...)
+    - x-extensible-enum
+    - ... and many more 
+
+    Furthermore some [common schemas](https://github.boschdevcloud.com/eBike/interface-cloud-data-model/tree/master/src/swagger/definitions/common) are referenced/copied for reuse.
+  contact:
+    email: cloud-api.support@de.bosch.com
+    name: Bosch eBike Systems Support
+servers:
+  - description: Production
+    url: 'https://api.bosch-ebike.com/example/v1'
+security:
+  - OIDC_PROD:
+      - offline_access
+tags:
+  - name: Awesome Bikes
+paths:
+  /bikes:
+    x-status: draft
+    get:
+      summary: List all eBikes
+      tags:
+        - Awesome Bikes
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - pagination
+                  - bikes
+                  - links
+                properties:
+                  pagination:
+                    type: object
+                    required:
+                      - offset
+                      - limit
+                      - total
+                    properties:
+                      offset:
+                        type: integer
+                        format: int32
+                      limit:
+                        type: integer
+                        format: int32
+                      total:
+                        type: integer
+                        description: Total number of items.
+                        format: int32
+                  bikes:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Bike'
+                  links:
+                    $ref: '#/components/schemas/links-1.0.0'
+        '401':
+          $ref: '#/components/responses/unauthorizedResponseV2'
+        '403':
+          $ref: '#/components/responses/forbiddenResponseV2'
+        '429':
+          $ref: '#/components/responses/rateLimitResponseV1'
+        default:
+          $ref: '#/components/responses/defaultResponseV1'
+      operationId: get-bikes
+      parameters:
+        - schema:
+            type: integer
+            default: 0
+            minimum: 0
+          in: query
+          name: offset
+          description: The first position or starting point (zero-based) in the result data set.
+        - schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 20
+            default: 10
+          in: query
+          name: limit
+          description: The number of items to return.
+      description: Returns a list of eBikes associated with a user.
+      x-stoplight:
+        id: w01x040r98pjp
+  '/bikes/{bikeId}':
+    parameters:
+      - schema:
+          type: string
+          format: uuid
+        name: bikeId
+        in: path
+        required: true
+        description: Bosch unique eBike ID.
+    get:
+      summary: Retrieve a single eBike
+      tags:
+        - Awesome Bikes
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Bike'
+          headers:
+            ETag:
+              $ref: '#/components/headers/ETag-Cache'
+        '401':
+          $ref: '#/components/responses/unauthorizedResponseV2'
+        '403':
+          $ref: '#/components/responses/forbiddenResponseV2'
+        '429':
+          $ref: '#/components/responses/rateLimitResponseV1'
+        default:
+          $ref: '#/components/responses/defaultResponseV1'
+      operationId: get-bikes-bikeId
+      description: |-
+        Returns data of a single eBike associated with a user.
+
+        This endpoint supports `ETag` (entity tag), a HTTP response header, to check if the resource has changed. ETags can be used by API clients for caching and conditional requests to save bandwidth by using the `If-None-Match` HTTP request header.
+      parameters:
+        - $ref: '#/components/parameters/If-None-Match-Cache'
+      x-stoplight:
+        id: wvz9n3g843pv2
+  '/bikes/{bikeId}/configuration':
+    parameters:
+      - schema:
+          type: string
+        name: bikeId
+        in: path
+        required: true
+        description: Bosch unique eBike ID.
+    get:
+      summary: Retrieve the current eBike configuration
+      tags:
+        - Awesome Bikes
+      responses:
+        '200':
+          description: OK
+          headers:
+            Deprecation:
+              $ref: '#/components/headers/Deprecation'
+            Sunset:
+              $ref: '#/components/headers/Sunset'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Configuration'
+        '401':
+          $ref: '#/components/responses/unauthorizedResponseV2'
+        '403':
+          $ref: '#/components/responses/forbiddenResponseV2'
+        '429':
+          $ref: '#/components/responses/rateLimitResponseV1'
+        default:
+          $ref: '#/components/responses/defaultResponseV1'
+      operationId: get-bikes-bikeId-configuration
+      deprecated: true
+      description: |-
+        This feature was deprecated Tuesday, February 25, 2025 at 17:15:07 UTC.
+        Sunset Sun, 31 Dec 2025 23:59:59 GMT. 
+      x-stoplight:
+        id: z51615gbssjff
+components:
+  schemas:
+    Bike:
+      title: Bike
+      type: object
+      required:
+        - id
+        - oemBikeId
+        - createdAt
+        - category
+      properties:
+        id:
+          type: string
+          format: uuid
+        oemBikeId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        category:
+          type: string
+          x-extensible-enum:
+            - value: BIKE_CATEGORY_NOT_CONFIGURED
+            - value: CITY
+            - value: MTB_TOUR
+            - value: MTB_TRAIL
+            - value: ROAD
+            - value: GRAVEL
+            - value: KIDS
+            - value: CARGO
+            - value: FLEET
+            - value: OTHERS
+            - value: E_CARGO_LONG_TAIL
+        components:
+          type: array
+          items:
+            type: object
+            properties:
+              productCode:
+                type: string
+              partNumber:
+                type: string
+              serialNumber:
+                type: string
+      x-stoplight:
+        id: 8j378pbrh3osm
+    Configuration:
+      title: Configuration
+      type: object
+      properties:
+        id:
+          type: string
+      x-stoplight:
+        id: tzmmig0i0epuz
+    problem-1.0.0:
+      type: object
+      title: Problem
+      required:
+        - type
+        - detail
+        - requestId
+      properties:
+        type:
+          type: string
+          format: uri-reference
+          description: |
+            A URI reference that uniquely identifies the problem type only in the context of the provided API. Opposed to the specification in RFC-7807, it is neither recommended to be dereferenceable and point to a human-readable documentation nor globally unique for the problem type.
+          default: 'about:blank'
+          example: /problems/connection-error
+        title:
+          type: string
+          description: |
+            A short summary of the problem type. Written in English and readable for engineers, usually not suited for non technical stakeholders and not localized.
+          example: Service Unavailable
+        status:
+          type: integer
+          format: int32
+          description: |
+            The HTTP status code generated by the origin server for this occurrence of the problem.
+          minimum: 100
+          maximum: 599
+          example: 503
+        detail:
+          type: string
+          description: |
+            A human readable explanation specific to this occurrence of the problem that is helpful to locate the problem and give advice on how to proceed. Written in English and readable for engineers, usually not suited for non technical stakeholders and not localized.
+          example: Connection to database timed out
+        instance:
+          type: string
+          example: /problems/connection-error#token-info-read-timed-out
+          format: uri-reference
+          description: |
+            A URI reference that identifies the specific occurrence of the problem, e.g. by adding a fragment identifier or sub-path to the problem type. May be used to locate the root of this problem in the source code.
+        requestId:
+          type: string
+          description: ID for this request.
+          example: 075be661d3a4460b98dee5d66849dd5e
+      x-stoplight:
+        id: ua3scz51qxfym
+    links-1.0.0:
+      type: object
+      required:
+        - self
+      properties:
+        self:
+          type: string
+          format: uri
+        first:
+          type: string
+          format: uri
+        prev:
+          type: string
+          format: uri
+        next:
+          type: string
+          format: uri
+        last:
+          type: string
+          format: uri
+      x-stoplight:
+        id: mkvmwn64iwwop
+  securitySchemes:
+    OIDC_PROD:
+      type: oauth2
+      flows:
+        authorizationCode:
+          authorizationUrl: 'https://p9.authz.bosch.com/auth/realms/obc/protocol/openid-connect/auth'
+          tokenUrl: 'https://p9.authz.bosch.com/auth/realms/obc/protocol/openid-connect/token'
+          refreshUrl: 'https://p9.authz.bosch.com/auth/realms/obc/protocol/openid-connect/token'
+          scopes:
+            offline_access: Use this optional scope to request a refresh token which never expires. The client application is responsible for securely persisting the token. The token never expires as long as it is used for a refresh token grant at least once every 180 days.
+      description: |-
+        Bosch Identity & Access Management
+
+        **Offline Access:** Client applications may use [offline_access](https://openid.net/specs/openid-connect-core-1_0.html#OfflineAccess). See the scope description below. 
+  responses:
+    defaultResponseV1:
+      description: |
+        Error occurred - see status code and problem schema for more information.
+        **Important:** Because of a distributed architecture, responses may occur that do not use the problem schema.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/problem-1.0.0'
+          examples:
+            internal-server-error:
+              value:
+                type: /problems/internal-server-error
+                title: Internal Server Error
+                status: 500
+                detail: An internal server error has occurred
+                requestId: 075be661d3a4460b98dee5d66849dd5e
+    unauthorizedResponseV2:
+      description: |
+        Unauthorized
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/problem-1.0.0'
+          examples:
+            no-authentication-provided:
+              value:
+                type: /problems/authentication-error#no-authentication-provided
+                title: Unauthenticated
+                status: 401
+                detail: No authentication provided
+                requestId: 075be661d3a4460b98dee5d66849dd5e
+            jwt-expired:
+              value:
+                type: /problems/authentication-error#jwt-expired
+                title: Unauthenticated
+                status: 401
+                detail: Jwt is expired
+                requestId: 075be661d3a4460b98dee5d66849dd5e
+            mailformed-jwt:
+              value:
+                type: /problems/authentication-error#mailformed-jwt
+                title: Unauthenticated
+                status: 401
+                detail: JWT is not in the form of Header.Payload.Signature with two dots and 3 sections
+                requestId: 075be661d3a4460b98dee5d66849dd5e
+            unknown-issuer:
+              value:
+                type: /problems/authentication-error#unknown-issuer
+                title: Unauthenticated
+                status: 401
+                detail: Jwt issuer is not configured
+                requestId: 075be661d3a4460b98dee5d66849dd5e
+    forbiddenResponseV2:
+      description: Forbidden
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/problem-1.0.0'
+          examples:
+            access-denied:
+              value:
+                type: /problems/authorization-error#access-denied
+                title: Forbidden
+                status: 403
+                detail: Access denied
+                requestId: 075be661d3a4460b98dee5d66849dd5e
+    rateLimitResponseV1:
+      description: Too Many Requests
+      headers:
+        X-RateLimit-Limit:
+          description: 'Bucket size, refresh size and time window for refresh, in seconds'
+          schema:
+            type: string
+          example: '100, 100;w=60'
+        X-RateLimit-Remaining:
+          description: Remaining requests in current time window
+          schema:
+            type: integer
+          example: 96
+        X-RateLimit-Reset:
+          description: Time in seconds until bucket is refreshed
+          schema:
+            type: integer
+          example: 57
+  parameters:
+    If-None-Match-Cache:
+      name: If-None-Match
+      in: header
+      required: false
+      schema:
+        type: string
+      description: |
+        Use the value of the previously received ETag response header to check if the resource has changed.
+        If so, you get the HTTP response status `200`, the current version of the resource and a new ETag response header.
+        In case the resource has not changed you just get the HTTP response with status `304` and an empty body.
+  headers:
+    ETag-Cache:
+      schema:
+        type: string
+      description: Calculated value to check with the `If-None-Match` request header if the resource has changed.
+    Deprecation:
+      schema:
+        type: integer
+        format: int64
+      description: Unix timestamp when the feature will be / was deprecated.
+    Sunset:
+      schema:
+        type: string
+        format: date-time
+      description: Date when consumers have to stop using the feature at the latest.
